@@ -14,8 +14,8 @@ If you previously created buckets in `us-east-1`, bootstrap again in `ap-south-2
 
 | Step | Jenkins job / command | Creates |
 |------|----------------------|---------|
-| 1 | `jakshwealth-infra` pipeline → Bootstrap | S3: `jakshwealth-infra-dev`, `jakshwealth-artifacts-dev`, `jakshwealth-logs-dev`; DynamoDB: `terraform-state-lock` |
-| 2 | `jakshwealth-infra` → UI hosting | S3: `jakshwealth-ui-dev`; CloudFront distribution (default `*.cloudfront.net` URL) |
+| 1 | `jakshwealth-infra` pipeline → Bootstrap | S3: `jakshwealth-infra-dev-aps2`, `jakshwealth-artifacts-dev-aps2`, `jakshwealth-logs-dev-aps2`; DynamoDB: `terraform-state-lock` |
+| 2 | `jakshwealth-infra` → UI hosting | S3: `jakshwealth-ui-dev-aps2`; CloudFront distribution |
 | 3 | `jakshwealth-infra` → API Gateway | REST API `jw-api` with execute-api URL (no custom domain) |
 | 4 | `jakshwealth-api` pipeline | Lambda functions + API integrations |
 | 5 | `jakshwealth-ui` pipeline | Angular build → S3 sync → CloudFront invalidation |

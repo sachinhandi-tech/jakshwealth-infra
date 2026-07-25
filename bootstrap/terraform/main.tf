@@ -16,10 +16,15 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 locals {
+  region_bucket_suffix = lookup({
+    "ap-south-2" = "aps2"
+    "us-east-1"  = "use1"
+  }, var.aws_region, replace(var.aws_region, "-", ""))
+
   buckets = {
-    infra     = "jakshwealth-infra-${var.deploy_env}"
-    artifacts = "jakshwealth-artifacts-${var.deploy_env}"
-    logs      = "jakshwealth-logs-${var.deploy_env}"
+    infra     = "jakshwealth-infra-${var.deploy_env}-${local.region_bucket_suffix}"
+    artifacts = "jakshwealth-artifacts-${var.deploy_env}-${local.region_bucket_suffix}"
+    logs      = "jakshwealth-logs-${var.deploy_env}-${local.region_bucket_suffix}"
   }
   tags = {
     Project     = "jakshwealth"

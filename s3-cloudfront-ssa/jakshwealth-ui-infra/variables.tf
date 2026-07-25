@@ -36,6 +36,11 @@ variable "deploy_env" {
   default = ""
 }
 
+variable "aws_region" {
+  type    = string
+  default = "ap-south-2"
+}
+
 
 variable "domain_name" {
   type    = map

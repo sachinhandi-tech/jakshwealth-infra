@@ -10,12 +10,17 @@ export AWS_PROFILE="${AWS_PROFILE:-jakshwealth}"
 export AWS_REGION="${AWS_REGION:-ap-south-2}"
 
 ENV="${1:-dev}"
-STATE_BUCKET="jakshwealth-infra-${ENV}"
-ARTIFACTS_BUCKET="jakshwealth-artifacts-${ENV}"
-LOGS_BUCKET="jakshwealth-logs-${ENV}"
+case "${AWS_REGION}" in
+  ap-south-2) REGION_SUFFIX="aps2" ;;
+  us-east-1)  REGION_SUFFIX="use1" ;;
+  *)          REGION_SUFFIX="${AWS_REGION//-/}" ;;
+esac
+STATE_BUCKET="jakshwealth-infra-${ENV}-${REGION_SUFFIX}"
+ARTIFACTS_BUCKET="jakshwealth-artifacts-${ENV}-${REGION_SUFFIX}"
+LOGS_BUCKET="jakshwealth-logs-${ENV}-${REGION_SUFFIX}"
 LOCK_TABLE="terraform-state-lock"
 
-echo "Bootstrap AWS_PROFILE=${AWS_PROFILE} ENV=${ENV}"
+echo "Bootstrap AWS_PROFILE=${AWS_PROFILE} AWS_REGION=${AWS_REGION} ENV=${ENV} suffix=${REGION_SUFFIX}"
 
 aws sts get-caller-identity
 
@@ -26,7 +31,7 @@ create_bucket() {
     return 0
   fi
   echo "Creating bucket: ${name}"
-  if [[ "${AWS_REGION}" == "ap-south-2" ]]; then
+  if [[ "${AWS_REGION}" == "us-east-1" ]]; then
     aws s3api create-bucket --bucket "${name}" --region "${AWS_REGION}"
   else
     aws s3api create-bucket --bucket "${name}" --region "${AWS_REGION}" \

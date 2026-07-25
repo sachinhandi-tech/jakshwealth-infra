@@ -45,8 +45,8 @@ resource "aws_iam_policy" "artifacts_s3_access" {
         "s3:ListBucket"
       ]
       Resource = [
-        "arn:aws:s3:::jakshwealth-artifacts-${var.environment}",
-        "arn:aws:s3:::jakshwealth-artifacts-${var.environment}/*"
+        "arn:aws:s3:::jakshwealth-artifacts-${var.environment}-${lookup({ "ap-south-2" = "aps2", "us-east-1" = "use1" }, data.aws_region.current.name, replace(data.aws_region.current.name, "-", ""))}",
+        "arn:aws:s3:::jakshwealth-artifacts-${var.environment}-${lookup({ "ap-south-2" = "aps2", "us-east-1" = "use1" }, data.aws_region.current.name, replace(data.aws_region.current.name, "-", ""))}/*"
       ]
     }]
   })

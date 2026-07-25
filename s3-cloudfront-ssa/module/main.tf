@@ -6,6 +6,7 @@ module "jakshwealth-ui-infra" {
   source                   = "../jakshwealth-ui-infra"
   deploy_env               = var.deploy_env
   enable_custom_domain     = var.enable_custom_domain
+  aws_region               = var.aws_region
   ssa_ui_website_resources = var.ssa_ui_website_resources
   ssa_ui_website_users     = var.ssa_ui_website_users
   owner_canonical_id       = var.owner_canonical_id
