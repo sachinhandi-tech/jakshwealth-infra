@@ -64,6 +64,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "hpp_ssa_ui_website_bucket_life
   rule {
     id     = "intelligent_tiering"
     status = "Enabled"
+
+    filter {}
+
     transition {
       days          = 365
       storage_class = "INTELLIGENT_TIERING"
@@ -76,6 +79,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "hpp_ssa_ui_website_bucket_life
   rule {
     id     = "glacier"
     status = "Enabled"
+
+    filter {}
+
     transition {
       days          = 2555
       storage_class = "GLACIER"
