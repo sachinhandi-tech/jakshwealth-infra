@@ -1,4 +1,5 @@
 environment           = "dev"
+aws_region            = "ap-south-2"
 enable_custom_domain  = false
 domain_name           = "jakshwealth-dev.example.com"
 api_domain_suffix     = "jakshwealth-dev.example.com"

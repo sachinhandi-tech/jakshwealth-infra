@@ -1,3 +1,3 @@
 deploy_env  = "prod"
-aws_region  = "us-east-1"
+aws_region  = "ap-south-2"
 aws_profile = "jakshwealth"

@@ -2,6 +2,14 @@
 
 This project targets a **personal AWS account** with **no pre-existing resources**. There is no Route53 domain, no ACM certificate, and no dev/test/prod split — everything runs in one environment (`dev` bucket suffix).
 
+All resources deploy to **`ap-south-2` (Hyderabad)**. Set the same region on Jenkins and local AWS profile:
+
+```bash
+aws configure set region ap-south-2 --profile jakshwealth
+```
+
+If you previously created buckets in `us-east-1`, bootstrap again in `ap-south-2` (new S3 bucket names in the new region) or destroy old resources first.
+
 ## What gets created (in order)
 
 | Step | Jenkins job / command | Creates |
@@ -61,7 +69,7 @@ All stacks share one DynamoDB table: `terraform-state-lock`. Terraform records *
 If a laptop lock blocks Jenkins, delete it once:
 
 ```bash
-AWS_PROFILE=jakshwealth AWS_REGION=us-east-1 aws dynamodb delete-item \
+AWS_PROFILE=jakshwealth AWS_REGION=ap-south-2 aws dynamodb delete-item \
   --table-name terraform-state-lock \
   --key '{"LockID":{"S":"jakshwealth-infra-dev/dev/jakshwealth-ui-infra/terraform.tfstate"}}'
 ```
@@ -87,7 +95,7 @@ aws cloudfront list-distributions --profile jakshwealth \
 ```bash
 API_ID=$(aws apigateway get-rest-apis --profile jakshwealth \
   --query "items[?name=='jw-api'].id | [0]" --output text)
-echo "https://${API_ID}.execute-api.us-east-1.amazonaws.com/dev/jw-api"
+echo "https://${API_ID}.execute-api.ap-south-2.amazonaws.com/dev/jw-api"
 ```
 
 Point the Angular app at the API URL in `src/environments/environment.development.ts` (`url: '/jw-api/'` works with a dev proxy; for production build set the full execute-api base URL).

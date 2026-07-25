@@ -1,6 +1,6 @@
 locals {
   jw_authorizer_lambda_name = var.jw_authorizer_lambda_name != "" ? var.jw_authorizer_lambda_name : "jw_authorization_${var.environment}"
-  jw_authorizer_invoke_arn  = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:${data.aws_caller_identity.current.account_id}:function:${local.jw_authorizer_lambda_name}/invocations"
+  jw_authorizer_invoke_arn  = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:${local.jw_authorizer_lambda_name}/invocations"
 }
 
 resource "aws_iam_role" "jwapi_invocation_role" {
@@ -36,7 +36,7 @@ resource "aws_iam_policy" "jwapi_invocation_policy" {
       "Action": "lambda:InvokeFunction",
       "Effect": "Allow",
       "Resource": [
-                   "arn:aws:lambda:us-east-1:${data.aws_caller_identity.current.account_id}:function:${local.jw_authorizer_lambda_name}"
+                   "arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:${local.jw_authorizer_lambda_name}"
                   ]
     }
     ]

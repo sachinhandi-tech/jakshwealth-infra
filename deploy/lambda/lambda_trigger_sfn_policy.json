@@ -11,8 +11,8 @@
         "sqs:GetQueueUrl",
         "sqs:SendMessage"
       ],
-      "Resource": ["arn:aws:sqs:us-east-1:*:ccd*.fifo",
-                  "arn:aws:sqs:us-east-1:*:ccd_data_validation*.fifo"]
+      "Resource": ["arn:aws:sqs:ap-south-2:*:ccd*.fifo",
+                  "arn:aws:sqs:ap-south-2:*:ccd_data_validation*.fifo"]
     },
     {
             "Sid": "AllowGlueJobStart",
@@ -23,7 +23,7 @@
                 "glue:GetJobRuns",
                 "glue:GetJob"
             ],
-            "Resource": "arn:aws:glue:us-east-1:*:job/hpp_table_level*"
+            "Resource": "arn:aws:glue:ap-south-2:*:job/hpp_table_level*"
     },
     {
       "Sid": "GeneralSFN",
@@ -32,7 +32,7 @@
         "states:DescribeStateMachine",
         "states:ListStateMachines"
       ],
-      "Resource": "arn:aws:states:us-east-1:*:stateMachine:*"
+      "Resource": "arn:aws:states:ap-south-2:*:stateMachine:*"
     },
     {
       "Sid": "TriggerSFN",
@@ -42,7 +42,7 @@
         "states:StartExecution",
         "states:DescribeStateMachineForExecution"
       ],
-      "Resource": "arn:aws:states:us-east-1:*:stateMachine:ccd*"
+      "Resource": "arn:aws:states:ap-south-2:*:stateMachine:ccd*"
     }
   ]
 }

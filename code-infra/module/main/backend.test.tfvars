@@ -1,4 +1,4 @@
 bucket = "jakshwealth-infra-test"
 key    = "test/jakshwealth/terraform.tfstate"
-region = "us-east-1"
+region = "ap-south-2"
 profile = "jakshwealth"

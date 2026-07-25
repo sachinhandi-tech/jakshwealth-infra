@@ -79,9 +79,9 @@ variable "cf-ipv6" {
 variable "alert_funnel_arn" {
   type    = map
   default = {
-    dev  = "arn:aws:sns:us-east-1:929468956630:cloudwatch-alarm-funnel"
-    test = "arn:aws:sns:us-east-1:929468956630:cloudwatch-alarm-funnel"
-    prod = "arn:aws:sns:us-east-1:746770431074:cloudwatch-alarm-funnel"
+    dev  = "arn:aws:sns:ap-south-2:929468956630:cloudwatch-alarm-funnel"
+    test = "arn:aws:sns:ap-south-2:929468956630:cloudwatch-alarm-funnel"
+    prod = "arn:aws:sns:ap-south-2:746770431074:cloudwatch-alarm-funnel"
   }
 }
 

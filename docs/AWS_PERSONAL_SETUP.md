@@ -15,7 +15,7 @@ Your AWS **console password is not used** by Terraform, Jenkins, or the CLI. Use
 
 ```bash
 aws configure --profile jakshwealth
-# Region: us-east-1
+# Region: ap-south-2
 
 aws sts get-caller-identity --profile jakshwealth
 ```
@@ -37,7 +37,7 @@ Or run the **jakshwealth-infra** Jenkins pipeline with `TERRAFORM_ACTION=apply` 
 All Terraform uses `enable_custom_domain=false`. You get:
 
 - UI: `https://<id>.cloudfront.net`
-- API: `https://<api-id>.execute-api.us-east-1.amazonaws.com/dev/jw-api`
+- API: `https://<api-id>.execute-api.ap-south-2.amazonaws.com/dev/jw-api`
 
 ## Security
 

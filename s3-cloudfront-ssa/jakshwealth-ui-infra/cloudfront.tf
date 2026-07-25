@@ -10,7 +10,7 @@ resource "aws_cloudfront_distribution" "jakshwealth-ui" {
   ]
 
   origin {
-    domain_name = "${aws_s3_bucket.jakshwealth-ui-website.id}.s3.amazonaws.com"
+    domain_name = aws_s3_bucket.jakshwealth-ui-website.bucket_regional_domain_name
     origin_id   = "S3-${aws_s3_bucket.jakshwealth-ui-website.id}"
 
     s3_origin_config {

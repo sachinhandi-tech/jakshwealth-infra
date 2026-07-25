@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 [[ -f "${ROOT}/aws.local.env" ]] && source "${ROOT}/aws.local.env"
 
 export AWS_PROFILE="${AWS_PROFILE:-jakshwealth}"
-export AWS_REGION="${AWS_REGION:-us-east-1}"
+export AWS_REGION="${AWS_REGION:-ap-south-2}"
 
 ENV="${1:-dev}"
 STATE_BUCKET="jakshwealth-infra-${ENV}"
@@ -26,7 +26,7 @@ create_bucket() {
     return 0
   fi
   echo "Creating bucket: ${name}"
-  if [[ "${AWS_REGION}" == "us-east-1" ]]; then
+  if [[ "${AWS_REGION}" == "ap-south-2" ]]; then
     aws s3api create-bucket --bucket "${name}" --region "${AWS_REGION}"
   else
     aws s3api create-bucket --bucket "${name}" --region "${AWS_REGION}" \

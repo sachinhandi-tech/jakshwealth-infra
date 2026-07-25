@@ -11,8 +11,8 @@
         "states:ListExecutions"
       ],
       "Resource": [
-        "arn:aws:states:us-east-1:*:stateMachine:ccd_mnthly_updts",
-        "arn:aws:states:us-east-1:*:execution:ccd_mnthly_updts:*"
+        "arn:aws:states:ap-south-2:*:stateMachine:ccd_mnthly_updts",
+        "arn:aws:states:ap-south-2:*:execution:ccd_mnthly_updts:*"
       ]
     },
     {

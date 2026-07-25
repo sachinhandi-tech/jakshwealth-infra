@@ -1,3 +1,9 @@
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "ap-south-2"
+}
+
 variable "enable_custom_domain" {
   type        = bool
   description = "Enable Route53/ACM-backed custom domain (personal AWS: leave false)"

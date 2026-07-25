@@ -93,7 +93,7 @@ variable "alert_funnel_arn" {
 
 variable "destination_arn" {
   description = "arn of centralized splunk dist"
-  default = "arn:aws:logs:us-east-1:746770431074:destination:CentralizedLogging-v2-Destination"
+  default = "arn:aws:logs:ap-south-2:746770431074:destination:CentralizedLogging-v2-Destination"
 }
 
 variable "appeals_sqs_queue_name" {

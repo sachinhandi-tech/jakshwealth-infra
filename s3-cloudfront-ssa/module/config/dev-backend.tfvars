@@ -1,5 +1,5 @@
 bucket = "jakshwealth-infra-dev"
 key    = "dev/jakshwealth-ui-infra/terraform.tfstate"
-region = "us-east-1"
+region = "ap-south-2"
 dynamodb_table = "terraform-state-lock"
 profile = "jakshwealth"

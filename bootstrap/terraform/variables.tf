@@ -6,7 +6,7 @@ variable "deploy_env" {
 
 variable "aws_region" {
   type    = string
-  default = "us-east-1"
+  default = "ap-south-2"
 }
 
 variable "aws_profile" {

@@ -1,4 +1,5 @@
 deploy_env           = "dev"
+aws_region           = "ap-south-2"
 enable_custom_domain = false
 
 ssa_ui_website_resources = ["arn:aws:s3:::jakshwealth-ui-dev", "arn:aws:s3:::jakshwealth-ui-dev/*"]

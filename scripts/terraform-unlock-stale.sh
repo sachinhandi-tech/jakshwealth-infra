@@ -5,7 +5,7 @@ set -euo pipefail
 
 STALE_MINUTES="${1:-30}"
 TABLE="${TERRAFORM_LOCK_TABLE:-terraform-state-lock}"
-REGION="${AWS_REGION:-us-east-1}"
+REGION="${AWS_REGION:-ap-south-2}"
 REMOVE_NON_JENKINS="${REMOVE_NON_JENKINS:-0}"
 
 echo "Checking ${TABLE} (stale>${STALE_MINUTES}m, remove_non_jenkins=${REMOVE_NON_JENKINS})..."

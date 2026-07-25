@@ -8,7 +8,7 @@
         "glue:GetJobRun",
         "glue:StartJobRun"
       ],
-      "Resource": "arn:aws:glue:us-east-1:*"
+      "Resource": "arn:aws:glue:ap-south-2:*"
     }
   ]
 }

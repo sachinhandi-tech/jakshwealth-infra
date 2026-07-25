@@ -121,9 +121,9 @@ resource "aws_cloudwatch_log_subscription_filter" "lambda-logs-sub" {
 
 locals {
   # Normal queue for when new appeals are added
-  ccd_appeal_queue_arn = format("arn:aws:sqs:us-east-1:%d:%s.fifo", data.aws_caller_identity.current.id, local.appeals_queue_name)
+  ccd_appeal_queue_arn = format("arn:aws:sqs:%s:%d:%s.fifo", data.aws_region.current.name, data.aws_caller_identity.current.id, local.appeals_queue_name)
   # Queue for when we need to rerun appeals
-  ccd_appeal_rerun_queue_arn = format("arn:aws:sqs:us-east-1:%d:%s.fifo", data.aws_caller_identity.current.id, local.appeals_rerun_name)
+  ccd_appeal_rerun_queue_arn = format("arn:aws:sqs:%s:%d:%s.fifo", data.aws_region.current.name, data.aws_caller_identity.current.id, local.appeals_rerun_name)
   appeals_queue_name = var.environment == "predev" ? "${var.appeals_sqs_queue_name}-predev" :  var.environment == "pretest" ? "${var.appeals_sqs_queue_name}-pretest" : var.environment == "preprod" ? "${var.appeals_sqs_queue_name}-preprod" : var.environment == "dev" ? "${var.appeals_sqs_queue_name}-dev": var.environment == "test" ? "${var.appeals_sqs_queue_name}-test": var.environment == "prod" ? "${var.appeals_sqs_queue_name}-prod":var.appeals_sqs_queue_name 
   appeals_rerun_name = var.environment == "predev" ? "${var.appeal_rerun_queue_name}-predev" :  var.environment == "pretest" ? "${var.appeal_rerun_queue_name}-pretest" : var.environment == "preprod" ? "${var.appeal_rerun_queue_name}-preprod" : var.appeal_rerun_queue_name
 }

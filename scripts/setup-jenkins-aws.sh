@@ -4,7 +4,7 @@
 set -euo pipefail
 
 PROFILE="${1:-jakshwealth}"
-REGION="${2:-us-east-1}"
+REGION="${2:-ap-south-2}"
 
 echo "Configure AWS CLI profile [${PROFILE}] for user: $(whoami)"
 echo "Create access keys: IAM → sachindad → Security credentials → Create access key"

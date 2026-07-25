@@ -3,7 +3,7 @@ data "terraform_remote_state" "authorizer_state" {
   config = {
     bucket = "jakshwealth-infra-${var.stage}"
     key    = "${var.stage}/jakshwealth/terraform.tfstate"
-    region = "us-east-1"
+    region = var.region
   }
 }
 

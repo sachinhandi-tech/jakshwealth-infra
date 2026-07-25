@@ -9,7 +9,7 @@ resource "aws_s3_bucket" "jakshwealth-ui-website" {
     {
       DataRetentionCode      = "7 Years"
       Environment            = var.deploy_env
-      RegionalRestriction    = "us-east-1"
+      RegionalRestriction    = "ap-south-2"
     }
   )
 }
