@@ -1,28 +1,34 @@
 variable "artifacts_bucket" {
   type    = map
   default = {
-    dev  = "cigna-us-jakshwealth-artifacts-dev"
-    test = "cigna-us-jakshwealth-artifacts-test"
-    prod = "cigna-us-jakshwealth-artifacts-prod"
+    dev  = "jakshwealth-artifacts-dev"
+    test = "jakshwealth-artifacts-test"
+    prod = "jakshwealth-artifacts-prod"
   }
 }
 
 variable "infra_state_bucket" {
   type    = map
   default = {
-    dev  = "cigna-us-jakshwealth-infra-dev"
-    test = "cigna-us-jakshwealth-infra-test"
-    prod = "cigna-us-jakshwealth-infra-prod"
+    dev  = "jakshwealth-infra-dev"
+    test = "jakshwealth-infra-test"
+    prod = "jakshwealth-infra-prod"
   }
 }
 
 variable "logs_bucket" {
   type    = map
   default = {
-    dev  = "cigna-us-jakshwealth-logs-dev"
-    test = "cigna-us-jakshwealth-logs-test"
-    prod = "cigna-us-jakshwealth-logs-prod"
+    dev  = "jakshwealth-logs-dev"
+    test = "jakshwealth-logs-test"
+    prod = "jakshwealth-logs-prod"
   }
+}
+
+variable "enable_custom_domain" {
+  type        = bool
+  description = "Use ACM cert + custom DNS alias (requires Route53 + certificate in AWS)"
+  default     = false
 }
 
 
@@ -34,9 +40,9 @@ variable "deploy_env" {
 variable "domain_name" {
   type    = map
   default = {
-    dev  = "jakshwealth-dev.aws.cignacloud.com"
-    test = "jakshwealth-test.aws.cignacloud.com"
-    prod = "jakshwealth-prod.aws.cignacloud.com"
+    dev  = "jakshwealth-dev.example.com"
+    test = "jakshwealth-test.example.com"
+    prod = "jakshwealth-prod.example.com"
   }
 }
 

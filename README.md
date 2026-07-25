@@ -35,7 +35,9 @@ jakshwealth-infra/
 2. **API app** — run **jakshwealth-api** Jenkinsfile (Lambdas, integrations, stage)
 3. **UI app** — run **jakshwealth-ui** Jenkinsfile (build → S3 sync → CF invalidation)
 
-## Prerequisites (your AWS account)
+## Personal AWS (fresh account, single environment)
+
+**Start here:** [docs/PERSONAL_DEPLOY.md](docs/PERSONAL_DEPLOY.md) — bootstrap from scratch, no Route53, no dev/test/prod split.
 
 **Setup:** [docs/AWS_PERSONAL_SETUP.md](docs/AWS_PERSONAL_SETUP.md) — IAM user + `aws configure --profile jakshwealth`
 

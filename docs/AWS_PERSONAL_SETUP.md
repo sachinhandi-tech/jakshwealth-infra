@@ -1,52 +1,45 @@
-# Personal AWS account setup (jakshu2024@gmail.com)
+# Personal AWS account setup
 
-**Important:** Your AWS **console password is not used** by Terraform, Jenkins, or the AWS CLI.
-Create an **IAM user** with programmatic access (Access Key ID + Secret Access Key).
+**Single environment only** — see [PERSONAL_DEPLOY.md](./PERSONAL_DEPLOY.md) for the full deploy order.
 
-## 1. One-time IAM setup (AWS Console)
+Your AWS **console password is not used** by Terraform, Jenkins, or the CLI. Use an IAM user with programmatic access.
 
-Sign in at https://console.aws.amazon.com with your root email.
+## 1. IAM user (one-time)
 
-1. **IAM → Users → Create user** — e.g. `jakshwealth-deploy`
-2. Attach policies (start broad for dev; tighten later):
-   - `AdministratorAccess` *(dev only)* OR custom policy for Lambda, API Gateway, S3, CloudFront, Route53, Secrets Manager, IAM
-3. **Security credentials → Create access key** → CLI
-4. Save **Access Key ID** and **Secret Access Key** (shown once)
+1. **IAM → Users → Create user** — e.g. `sachindad`
+2. Attach `AdministratorAccess` for initial personal setup (tighten later)
+3. **Create access key** → CLI
+4. Save Access Key ID and Secret Access Key
 
-## 2. Configure AWS CLI profile (all repos use `jakshwealth`)
+## 2. AWS CLI profile
 
 ```bash
 aws configure --profile jakshwealth
-# AWS Access Key ID:     <paste>
-# AWS Secret Access Key: <paste>
-# Default region:        us-east-1
-# Default output format: json
+# Region: us-east-1
 
 aws sts get-caller-identity --profile jakshwealth
 ```
 
-Copy the `Account` value (12 digits) into each repo's `.cicd/build_props/*-build.properties` as `account_number=`.
+Copy the `Account` value into `.cicd/build_props/build.properties` as `account_number=`.
 
-## 3. Optional local env file (gitignored)
-
-```bash
-cp aws.local.env.example aws.local.env
-# Edit AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY only if not using ~/.aws/credentials
-```
-
-## 4. Bootstrap S3 + DynamoDB (once per env)
+## 3. Bootstrap (creates S3 + DynamoDB lock)
 
 ```bash
-chmod +x scripts/bootstrap-aws-dev.sh
-./scripts/bootstrap-aws-dev.sh dev
+cd bootstrap/terraform
+terraform init
+terraform apply -var-file=vars.dev.tfvars
 ```
 
-Creates `jakshwealth-infra-dev`, `jakshwealth-artifacts-dev`, and `terraform-state-lock`.
+Or run the **jakshwealth-infra** Jenkins pipeline with `TERRAFORM_ACTION=apply` (bootstrap stage runs automatically).
 
-## 5. S3 buckets created by Terraform (UI hosting)
+## 4. No Route53 / custom domain
+
+All Terraform uses `enable_custom_domain=false`. You get:
+
+- UI: `https://<id>.cloudfront.net`
+- API: `https://<api-id>.execute-api.us-east-1.amazonaws.com/dev/jw-api`
 
 ## Security
 
-- **Never commit** passwords, access keys, or `aws.local.env`
-- **Rotate** any credential shared in chat or logs
-- Prefer IAM user keys over root console password for automation
+- Never commit passwords, access keys, or `aws.local.env`
+- Rotate credentials if they were ever shared in chat or logs

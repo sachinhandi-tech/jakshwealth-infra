@@ -1,3 +1,9 @@
+variable "enable_custom_domain" {
+  type        = bool
+  description = "Enable Route53/ACM-backed custom domain (personal AWS: leave false)"
+  default     = false
+}
+
 variable "deploy_env" {
   default = ""
 }

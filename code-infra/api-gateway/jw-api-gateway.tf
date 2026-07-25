@@ -1,7 +1,7 @@
 resource "aws_api_gateway_rest_api" "main_jw_api" {
   name                         = var.jw_api_name
   description                  = "REST API for JakshWealth"
-  disable_execute_api_endpoint = true
+  disable_execute_api_endpoint = var.enable_custom_domain
 
   endpoint_configuration {
     types = ["REGIONAL"]
@@ -17,6 +17,7 @@ resource "aws_api_gateway_resource" "jwapi_root" {
 }
 
 resource "aws_api_gateway_domain_name" "jwapi_gatewaydns" {
+  count                    = var.enable_custom_domain ? 1 : 0
   domain_name              = "${var.route53name_jw_api}-g.${var.api_domain_suffix}"
   regional_certificate_arn = var.certificate_arn_api
 

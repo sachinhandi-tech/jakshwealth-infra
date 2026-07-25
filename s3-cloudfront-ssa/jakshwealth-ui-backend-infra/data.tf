@@ -1,25 +1,15 @@
-data "aws_vpc" "golden" { 
-  filter {
-    name   = "tag:Name"
-    values = ["hpp-cigna-golden-vpc"]
-  }
-}
-
 data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 
-data "aws_acm_certificate" "hpp-cert" {
-  domain   = local.domain_name
-  statuses = ["ISSUED"]
-}
-
 data "aws_route53_zone" "zone" {
+  count        = var.enable_custom_domain ? 1 : 0
   name         = local.domain_name
   private_zone = true
 }
 
-data "aws_acm_certificate" "hpp-logger-cert" {
+data "aws_acm_certificate" "hpp_cert" {
+  count    = var.enable_custom_domain ? 1 : 0
   domain   = local.domain_name
   statuses = ["ISSUED"]
 }

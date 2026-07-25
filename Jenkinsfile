@@ -59,17 +59,11 @@ pipeline {
         stage('Set environment') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master') {
-                        props = readProperties file: "${WORKSPACE}/.cicd/build_props/prod-build.properties"
-                    } else if (env.BRANCH_NAME == 'test') {
-                        props = readProperties file: "${WORKSPACE}/.cicd/build_props/test-build.properties"
-                    } else {
-                        props = readProperties file: "${WORKSPACE}/.cicd/build_props/dev-build.properties"
-                    }
+                    props = readProperties file: "${WORKSPACE}/.cicd/build_props/build.properties"
                     env.AWS_CREDENTIALS_ID = (props.aws_credentials_id ?: '').trim()
                     env.AWS_PROFILE = props.aws_profile ?: 'jakshwealth'
                     env.AWS_REGION = props.aws_region ?: 'us-east-1'
-                    env.DEPLOY_ENV = props.deploy_env
+                    env.DEPLOY_ENV = props.deploy_env ?: 'dev'
                 }
             }
         }
@@ -84,21 +78,38 @@ pipeline {
             }
         }
 
+        stage('Bootstrap foundation buckets') {
+            when {
+                expression { params.TERRAFORM_ACTION == 'apply' }
+            }
+            steps {
+                script {
+                    jakshAws {
+                        sh '''
+                            cd bootstrap/terraform
+                            terraform init -input=false
+                            terraform apply -auto-approve -var-file="vars.dev.tfvars"
+                        '''
+                    }
+                }
+            }
+        }
+
         stage('UI hosting (S3 + CloudFront)') {
             steps {
                 script {
                     jakshAws {
                         sh '''
                             cd s3-cloudfront-ssa/module
-                            terraform init -backend-config="config/${DEPLOY_ENV}-backend.tfvars"
+                            terraform init -backend-config="config/dev-backend.tfvars"
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
                               terraform apply -auto-approve \
                                 -var "deploy_env=${DEPLOY_ENV}" \
-                                -var-file="s3_config_vars/s3.${DEPLOY_ENV}.tfvars"
+                                -var-file="s3_config_vars/s3.dev.tfvars"
                             else
                               terraform plan \
                                 -var "deploy_env=${DEPLOY_ENV}" \
-                                -var-file="s3_config_vars/s3.${DEPLOY_ENV}.tfvars"
+                                -var-file="s3_config_vars/s3.dev.tfvars"
                             fi
                         '''
                     }
@@ -112,11 +123,11 @@ pipeline {
                     jakshAws {
                         sh '''
                             cd code-infra/module/main
-                            terraform init -backend-config="backend.${DEPLOY_ENV}.tfvars"
+                            terraform init -backend-config="backend.dev.tfvars"
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
-                              terraform apply -auto-approve -var-file="vars.${DEPLOY_ENV}.tfvars"
+                              terraform apply -auto-approve -var-file="vars.dev.tfvars"
                             else
-                              terraform plan -var-file="vars.${DEPLOY_ENV}.tfvars"
+                              terraform plan -var-file="vars.dev.tfvars"
                             fi
                         '''
                     }

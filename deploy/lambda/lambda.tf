@@ -1,6 +1,7 @@
 resource "aws_lambda_function" "lambda" {
-    depends_on = [
-    aws_iam_role_policy_attachment.lambda_vpc
+  depends_on = [
+    aws_iam_role_policy_attachment.lambda_write_ACCESS,
+    aws_iam_role_policy_attachment.artifacts_s3
   ]
   function_name                          = "${var.function_name}_${var.environment}"
   description                           = var.description
@@ -16,9 +17,13 @@ resource "aws_lambda_function" "lambda" {
   layers                                = var.layers
   tags                                  = var.tags
   kms_key_arn                           = aws_kms_key.lambda_key.arn
-  vpc_config {
-    subnet_ids = var.subnet_ids
-    security_group_ids = var.security_group_ids
+
+  dynamic "vpc_config" {
+    for_each = length(var.subnet_ids) > 0 ? [1] : []
+    content {
+      subnet_ids         = var.subnet_ids
+      security_group_ids = var.security_group_ids
+    }
   }
 
   ephemeral_storage {
@@ -33,6 +38,7 @@ resource "aws_lambda_function" "lambda" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "sample_error_metrics" {
+  count                     = var.alert_funnel_arn != "" ? 1 : 0
   alarm_name                = "${var.function_name}-${var.environment}-errors"
   namespace                 = "AWS/Lambda"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
@@ -43,7 +49,7 @@ resource "aws_cloudwatch_metric_alarm" "sample_error_metrics" {
   statistic                 = "Sum"
   alarm_actions             = [ var.alert_funnel_arn ]
   treat_missing_data        = "notBreaching"
-  alarm_description         = "${var.environment} | CRITICAL | HPP |Error while executing the ${var.function_name} lambda function (Threshold - Errors > 0 )"
+  alarm_description         = "${var.environment} | CRITICAL | JakshWealth | Error while executing the ${var.function_name} lambda function (Threshold - Errors > 0 )"
   dimensions = {
     FunctionName = "${var.function_name}_${var.environment}"
   }
@@ -52,8 +58,9 @@ resource "aws_cloudwatch_metric_alarm" "sample_error_metrics" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda-throttling" {
+  count               = var.alert_funnel_arn != "" ? 1 : 0
   alarm_name          = "${var.function_name}-${var.environment}-throttling"
-  alarm_description   = "${var.environment} | WARN | HPP |Throttled while executing the ${var.function_name} lambda function"
+  alarm_description   = "${var.environment} | WARN | JakshWealth | Throttled while executing the ${var.function_name} lambda function"
   alarm_actions       = [var.alert_funnel_arn]
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = "1"
@@ -72,8 +79,9 @@ resource "aws_cloudwatch_metric_alarm" "lambda-throttling" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda-duration" {
+  count               = var.alert_funnel_arn != "" ? 1 : 0
   alarm_name          = "${var.function_name}-${var.environment}-duration"
-  alarm_description   = "${var.environment} | INFO | HPP | Execution time exceeding threshold (${var.alarm_duration} sec) for ${var.function_name} lambda function"
+  alarm_description   = "${var.environment} | INFO | JakshWealth | Execution time exceeding threshold (${var.alarm_duration} sec) for ${var.function_name} lambda function"
   alarm_actions       = [var.alert_funnel_arn]
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = "1"

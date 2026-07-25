@@ -87,8 +87,8 @@ variable "subnet_ids" {
 /* cloudwatch variables */
 
 variable "alert_funnel_arn" {
-  description = "arn of funnel to sns topic"
-  default = "arn:aws:sns:us-east-1:929468956630:cloudwatch-alarm-funnel"
+  description = "SNS topic for CloudWatch alarms; leave empty to skip alarms"
+  default     = ""
 }
 
 variable "destination_arn" {

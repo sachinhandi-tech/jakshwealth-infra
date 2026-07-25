@@ -18,12 +18,19 @@ variable "jw_authorizer_lambda_name" {
   default     = ""
 }
 
+variable "enable_custom_domain" {
+  type    = bool
+  default = false
+}
+
 variable "hosted_zone_id" {
-  description = "Route53 hosted zone ID for API and UI DNS records"
+  description = "Route53 hosted zone ID for API DNS (when enable_custom_domain is true)"
+  default     = ""
 }
 
 variable "certificate_arn_api" {
   description = "ACM certificate ARN for the API custom domain"
+  default     = ""
 }
 
 variable "project_tags" {

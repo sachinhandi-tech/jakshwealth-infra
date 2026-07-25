@@ -13,9 +13,15 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "enable_custom_domain" {
+  type    = bool
+  default = false
+}
+
 variable "certificate_arn_api" {
-  description = "ACM certificate ARN for the API custom domain"
+  description = "ACM certificate ARN for the API custom domain (when enable_custom_domain is true)"
   type        = string
+  default     = ""
 }
 
 variable "domain_name" {

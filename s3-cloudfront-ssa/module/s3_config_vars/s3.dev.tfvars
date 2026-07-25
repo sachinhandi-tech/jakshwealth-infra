@@ -1,3 +1,6 @@
+deploy_env=dev
+enable_custom_domain=false
+
 ssa_ui_website_resources = ["arn:aws:s3:::jakshwealth-ui-dev", "arn:aws:s3:::jakshwealth-ui-dev/*"]
 # IAM user for S3/CloudFront deploy (create in IAM if not present)
 ssa_ui_website_users     = ["arn:aws:iam::305068201745:user/sachindad"]

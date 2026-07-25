@@ -26,7 +26,7 @@ resource "aws_cloudfront_distribution" "jakshwealth-ui" {
     bucket          = aws_s3_bucket.jakshwealth-ui-website.bucket_domain_name
     prefix          = "logs"
   }
-  aliases = ["ssa.${local.domain_name}"]
+  aliases = var.enable_custom_domain ? ["ssa.${local.domain_name}"] : []
   custom_error_response {
     error_caching_min_ttl = "300"
     error_code            = "404"
@@ -61,10 +61,20 @@ resource "aws_cloudfront_distribution" "jakshwealth-ui" {
     }
   }
 
-  viewer_certificate {
-    acm_certificate_arn      = data.aws_acm_certificate.hpp-cert.arn
-    ssl_support_method       = "sni-only"
-    minimum_protocol_version = var.minimum_protocol_version
+  dynamic "viewer_certificate" {
+    for_each = var.enable_custom_domain ? [1] : []
+    content {
+      acm_certificate_arn      = data.aws_acm_certificate.hpp_cert[0].arn
+      ssl_support_method       = "sni-only"
+      minimum_protocol_version = var.minimum_protocol_version
+    }
+  }
+
+  dynamic "viewer_certificate" {
+    for_each = var.enable_custom_domain ? [] : [1]
+    content {
+      cloudfront_default_certificate = true
+    }
   }
   # Assigning the waf_channel tag takes care of the web_acl
 #  web_acl_id = data.aws_wafv2_web_acl.cigna_internal_only.arn

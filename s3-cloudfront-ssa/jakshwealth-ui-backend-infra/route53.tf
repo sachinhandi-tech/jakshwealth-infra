@@ -1,5 +1,6 @@
 resource "aws_route53_record" "jakshwealth-ui-alias" {
-  zone_id = data.aws_route53_zone.zone.id
+  count   = var.enable_custom_domain ? 1 : 0
+  zone_id = data.aws_route53_zone.zone[0].id
   name    = "ssa.${local.domain_name}"
   type    = "A"
 

@@ -12,6 +12,7 @@ export AWS_REGION="${AWS_REGION:-us-east-1}"
 ENV="${1:-dev}"
 STATE_BUCKET="jakshwealth-infra-${ENV}"
 ARTIFACTS_BUCKET="jakshwealth-artifacts-${ENV}"
+LOGS_BUCKET="jakshwealth-logs-${ENV}"
 LOCK_TABLE="terraform-state-lock"
 
 echo "Bootstrap AWS_PROFILE=${AWS_PROFILE} ENV=${ENV}"
@@ -40,6 +41,7 @@ create_bucket() {
 
 create_bucket "${STATE_BUCKET}"
 create_bucket "${ARTIFACTS_BUCKET}"
+create_bucket "${LOGS_BUCKET}"
 
 if aws dynamodb describe-table --table-name "${LOCK_TABLE}" --region "${AWS_REGION}" >/dev/null 2>&1; then
   echo "DynamoDB table exists: ${LOCK_TABLE}"
@@ -58,6 +60,7 @@ echo ""
 echo "Bootstrap complete. Buckets:"
 echo "  ${STATE_BUCKET}     (Terraform state)"
 echo "  ${ARTIFACTS_BUCKET}  (Lambda zips + API Terraform state)"
+echo "  ${LOGS_BUCKET}        (CloudFront / access logs)"
 echo "  ${LOCK_TABLE}        (state lock)"
 echo ""
 echo "Next:"
