@@ -31,37 +31,8 @@ cutoff = now - timedelta(minutes=stale_minutes)
 removed = 0
 
 
-def parse_created(raw: str) -> datetime:
-    raw = raw.strip().replace(" UTC", "")
-    if raw.endswith("Z"):
-        raw = raw[:-1] + "+00:00"
-    try:
-        return datetime.fromisoformat(raw)
-    except ValueError:
-        return datetime.strptime(raw, "%Y-%m-%d %H:%M:%S.%f %z")
-
-
-for item in payload.get("Items", []):
-    lock_id = item["LockID"]["S"]
-    info = json.loads(item["Info"]["S"])
-    created_raw = info.get("Created", "")
-    who = info.get("Who", "unknown")
-    is_jenkins = "jenkins" in who.lower()
-
-    try:
-        created = parse_created(created_raw)
-    except ValueError:
-        print(f"Skip (unparseable Created): {lock_id} who={who}", file=sys.stderr)
-        continue
-
-    if remove_non_jenkins and not is_jenkins:
-        reason = f"non-jenkins holder ({who})"
-    elif created > cutoff:
-        print(f"Keep active lock ({who}): {lock_id}", file=sys.stderr)
-        continue
-    else:
-        reason = f"stale ({who}, created {created_raw})"
-
+def delete_lock(lock_id: str, reason: str) -> None:
+    global removed
     subprocess.run(
         [
             "aws", "dynamodb", "delete-item",
@@ -73,6 +44,55 @@ for item in payload.get("Items", []):
     )
     print(f"Removed lock — {reason}: {lock_id}", file=sys.stderr)
     removed += 1
+
+
+def parse_created(raw: str) -> datetime:
+    raw = raw.strip().replace(" UTC", "")
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return datetime.strptime(raw, "%Y-%m-%d %H:%M:%S.%f %z")
+
+
+for item in payload.get("Items", []):
+    lock_id = item.get("LockID", {}).get("S")
+    if not lock_id:
+        print("Skip item without LockID", file=sys.stderr)
+        continue
+
+    info_raw = item.get("Info", {}).get("S")
+    if not info_raw:
+        delete_lock(lock_id, "missing Info metadata (orphan lock row)")
+        continue
+
+    try:
+        info = json.loads(info_raw)
+    except json.JSONDecodeError:
+        delete_lock(lock_id, "invalid Info JSON")
+        continue
+
+    created_raw = info.get("Created", "")
+    who = info.get("Who", "unknown")
+    is_jenkins = "jenkins" in who.lower()
+
+    if not created_raw:
+        delete_lock(lock_id, f"missing Created timestamp ({who})")
+        continue
+
+    try:
+        created = parse_created(created_raw)
+    except ValueError:
+        print(f"Skip (unparseable Created): {lock_id} who={who}", file=sys.stderr)
+        continue
+
+    if remove_non_jenkins and not is_jenkins:
+        delete_lock(lock_id, f"non-jenkins holder ({who})")
+    elif created > cutoff:
+        print(f"Keep active lock ({who}): {lock_id}", file=sys.stderr)
+    else:
+        delete_lock(lock_id, f"stale ({who}, created {created_raw})")
 
 print(removed)
 PY
