@@ -135,7 +135,7 @@ pipeline {
                             REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
 
                             cd code-infra/module/main
-                            terraform init -backend-config="backend.dev.tfvars"
+                            terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
                               terraform apply -auto-approve -lock-timeout=10m -var-file="vars.dev.tfvars"
                             else
