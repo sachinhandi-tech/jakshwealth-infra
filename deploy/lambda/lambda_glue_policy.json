@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RunGlueJob",
+      "Effect": "Allow",
+      "Action": [
+        "glue:GetJobRun",
+        "glue:StartJobRun"
+      ],
+      "Resource": "arn:aws:glue:us-east-1:*"
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AthenaQueryAccess",
+      "Effect": "Allow",
+      "Action": [
+        "athena:UpdateDataCatalog",
+        "athena:StartQueryExecution",
+        "athena:ListDataCatalogs",
+        "athena:UpdatePreparedStatement",
+        "athena:GetQueryResults",
+        "athena:GetDatabase",
+        "athena:GetDataCatalog",
+        "athena:ListWorkGroups",
+        "athena:GetWorkGroup",
+        "athena:UpdateNamedQuery",
+        "athena:ListDatabases",
+        "athena:StopQueryExecution",
+        "athena:GetQueryExecution"
+      ],
+      "Resource": [
+        "arn:aws:athena:us-east-1:*:datacatalog/hpp*",
+        "arn:aws:athena:us-east-1:*:workgroup/hpp*"
+      ]
+    },
+    {
+      "Sid": "HistoryRDS",
+      "Effect": "Allow",
+      "Action": [
+        "rds:DeleteDBClusterSnapshot",
+        "rds:CancelExportTask",
+        "rds:DescribeDBSnapshots",
+        "rds:DescribeExportTasks",
+        "rds:StartExportTask",
+        "rds:DescribeDBClusterSnapshots",
+        "rds:CreateDBClusterSnapshot",
+        "rds:DescribeDBClusters",
+        "rds:DescribeDBSnapshotAttributes"
+      ],
+      "Resource": [
+        "arn:aws:rds:us-east-1:*:cluster:hpp*"
+      ]
+    },
+    {
+      "Sid": "HistorySnapshots",
+      "Effect": "Allow",
+      "Action": [
+        "rds:DeleteDBClusterSnapshot",
+        "rds:DescribeDBSnapshots",
+        "rds:DescribeExportTasks",
+        "rds:StartExportTask",
+        "rds:DescribeDBClusterSnapshots",
+        "rds:CreateDBClusterSnapshot",
+        "rds:DescribeDBClusters",
+        "rds:AddTagsToResource",
+        "rds:DescribeDBSnapshotAttributes"
+      ],
+      "Resource": [
+        "arn:aws:rds:us-east-1:*:cluster-snapshot:hpp*",
+        "arn:aws:rds:us-east-1:*:cluster:hpp*"
+      ]
+    },
+    {
+      "Sid": "HistoryAll",
+      "Effect": "Allow",
+      "Action": [
+        "rds:DescribeDBSnapshots",
+        "rds:DescribeExportTasks",
+        "rds:DescribeDBClusterSnapshots",
+        "rds:DescribeDBClusters",
+        "rds:CancelExportTask",
+        "rds:StartExportTask"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "RoleAccess",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/hpp-history_export_rl",
+        "arn:aws:iam::*:role/HPP_ccd-history-handle-snapshot_lambda"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:ReEncryptTo",
+        "kms:GenerateDataKey",
+        "kms:GenerateDataKeyWithoutPlaintext",
+        "kms:DescribeKey",
+        "kms:ReEncryptFrom",
+        "kms:CreateGrant",
+        "kms:DescribeKey"
+      ],
+      "Resource": "arn:aws:kms:us-east-1:*:key/c48e228f-812a-4d21-8840-0c5d5546ba8f"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kms:ListKeys",
+        "glue:GetCrawlerMetrics"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "glue:StartCrawler"
+      ],
+      "Resource": "arn:aws:glue:us-east-1:*:crawler/hpp-history_database_crawler"
+    }
+  ]
+}
+

@@ -1,0 +1,27 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "MonthlyTransparencyStepFunctionAccess",
+      "Effect": "Allow",
+      "Action": [
+        "states:StartExecution",
+        "states:DescribeExecution",
+        "states:GetExecutionHistory",
+        "states:ListExecutions"
+      ],
+      "Resource": [
+        "arn:aws:states:us-east-1:*:stateMachine:ccd_mnthly_updts",
+        "arn:aws:states:us-east-1:*:execution:ccd_mnthly_updts:*"
+      ]
+    },
+    {
+      "Sid": "ListStateMachinesForArnResolution",
+      "Effect": "Allow",
+      "Action": [
+        "states:ListStateMachines"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+---
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: registry.cigna.com/enterprise-devops/conduit-jnlp:latest
+    resources:
+      requests: 
+        cpu: 150m
+        memory: 1000Mi
+      limits: 
+        cpu: 650m
+        memory: 1000Mi
+  - name: megatainer
+    image: registry.cigna.com/enterprise-devops/aws-d-megatainer:1.0.14-2
+    command:
+    - cat
+    workingDir: /home/jenkins/agent
+    imagePullPolicy: IfNotPresent
+    tty: true
+    resources:
+      requests: 
+        cpu: 150m
+        memory: 1000Mi
+      limits: 
+        cpu: 650m
+        memory: 1000Mi
+  - name: cloudkit
+    image: registry.cigna.com/enterprise-devops/aws-d-cloudkit:plz-2-python-3.11
+    command:
+    - cat
+    workingDir: /home/jenkins/agent
+    imagePullPolicy: IfNotPresent
+    tty: true
+    resources:
+      requests: 
+        cpu: 150m
+        memory: 1000Mi
+      limits: 
+        cpu: 650m
+        memory: 1000Mi

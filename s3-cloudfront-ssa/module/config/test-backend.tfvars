@@ -1,0 +1,5 @@
+bucket = "jakshwealth-infra-test"
+key    = "test/jakshwealth-ui-infra/terraform.tfstate"
+region = "us-east-1"
+dynamodb_table = "terraform-state-lock"
+profile = "jakshwealth"

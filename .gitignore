@@ -1,0 +1,17 @@
+.terraform
+**.idea/
+tfplan.out
+**DS_Store
+**/__pycache__
+**/.DS_Store
+tempDB
+**/ssm
+
+**.zip
+
+aws.local.env
+.cicd/credentials
+.personal-build.properties
+
+# Kiro
+.kiro/

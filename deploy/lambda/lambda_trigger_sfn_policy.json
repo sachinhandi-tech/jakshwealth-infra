@@ -1,0 +1,48 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "LambdaTriggerFromQueue",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:SendMessage"
+      ],
+      "Resource": ["arn:aws:sqs:us-east-1:*:ccd*.fifo",
+                  "arn:aws:sqs:us-east-1:*:ccd_data_validation*.fifo"]
+    },
+    {
+            "Sid": "AllowGlueJobStart",
+            "Effect": "Allow",
+            "Action": [
+                "glue:StartJobRun",
+                "glue:GetJobRun",
+                "glue:GetJobRuns",
+                "glue:GetJob"
+            ],
+            "Resource": "arn:aws:glue:us-east-1:*:job/hpp_table_level*"
+    },
+    {
+      "Sid": "GeneralSFN",
+      "Effect": "Allow",
+      "Action": [
+        "states:DescribeStateMachine",
+        "states:ListStateMachines"
+      ],
+      "Resource": "arn:aws:states:us-east-1:*:stateMachine:*"
+    },
+    {
+      "Sid": "TriggerSFN",
+      "Effect": "Allow",
+      "Action": [
+        "states:DescribeExecution",
+        "states:StartExecution",
+        "states:DescribeStateMachineForExecution"
+      ],
+      "Resource": "arn:aws:states:us-east-1:*:stateMachine:ccd*"
+    }
+  ]
+}
