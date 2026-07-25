@@ -16,7 +16,7 @@ import_if_missing() {
   fi
 
   echo "Importing ${addr} <- ${id}"
-  terraform import "${addr}" "${id}"
+  terraform import -input=false "${addr}" "${id}"
 }
 
 echo "Checking for existing foundation resources (deploy_env=${DEPLOY_ENV})..."
@@ -27,6 +27,8 @@ declare -A BUCKETS=(
   [logs]="jakshwealth-logs-${DEPLOY_ENV}"
 )
 
+# Import every existing bucket before apply so partial state from a prior failed run
+# does not block subsequent imports (outputs use try() for in-progress state).
 for key in infra artifacts logs; do
   bucket="${BUCKETS[${key}]}"
   if aws s3api head-bucket --bucket "${bucket}" 2>/dev/null; then
