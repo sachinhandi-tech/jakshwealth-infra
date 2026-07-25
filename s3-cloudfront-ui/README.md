@@ -1,6 +1,6 @@
 # JakshWealth UI — S3 + CloudFront + Route53
 
-Hosts the **jakshwealth-ui** Angular SPA (same pattern as the upstream SSA UI stack).
+Hosts the **jakshwealth-ui** Angular SPA (same pattern as the JakshWealth UI hosting).
 
 ## Resources per environment
 
@@ -13,10 +13,10 @@ Hosts the **jakshwealth-ui** Angular SPA (same pattern as the upstream SSA UI st
 
 ## Deploy
 
-Applied from **jakshwealth-infra** Jenkins pipeline (`s3-cloudfront-ssa/module`).
+Applied from **jakshwealth-infra** Jenkins pipeline (`s3-cloudfront-ui/module`).
 
 ```bash
-cd s3-cloudfront-ssa/module
+cd s3-cloudfront-ui/module
 terraform init -backend-config=config/dev-backend.tfvars
 terraform plan -var deploy_env=dev -var-file=s3_config_vars/s3.dev.tfvars
 terraform apply

@@ -16,7 +16,7 @@ jakshwealth-infra/
 ├── code-infra/
 │   ├── api-gateway/                 # jw-api REST API shell + TOKEN authorizer wiring
 │   └── module/main/                 # Apply API Gateway platform per environment
-├── s3-cloudfront-ssa/               # jakshwealth-ui S3 + CloudFront + Route53
+├── s3-cloudfront-ui/               # jakshwealth-ui S3 + CloudFront + Route53
 └── Jenkinsfile                      # Platform infra (UI + API GW shell)
 ```
 
@@ -24,13 +24,13 @@ jakshwealth-infra/
 
 | App | Infra from this repo |
 |-----|----------------------|
-| **jakshwealth-ui** | `s3-cloudfront-ssa/module` → S3 bucket, CloudFront, DNS |
+| **jakshwealth-ui** | `s3-cloudfront-ui/module` → S3 bucket, CloudFront, DNS |
 | **jakshwealth-api** | `deploy/*` modules + `code-infra/module/main` (API GW + authorizer) |
 
 ## Deploy order (per environment)
 
 1. **Platform** — run this repo's Jenkinsfile (or Terraform manually):
-   - `s3-cloudfront-ssa/module` — UI hosting
+   - `s3-cloudfront-ui/module` — UI hosting
    - `code-infra/module/main` — `jw-api` REST API + authorizer IAM
 2. **API app** — run **jakshwealth-api** Jenkinsfile (Lambdas, integrations, stage)
 3. **UI app** — run **jakshwealth-ui** Jenkinsfile (build → S3 sync → CF invalidation)

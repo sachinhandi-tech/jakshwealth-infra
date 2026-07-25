@@ -1,5 +1,5 @@
 resource "aws_cloudfront_origin_access_identity" "jakshwealth-ui-OAI" {
-  comment = "Origin Access Identity for HPP Self-Service Analytics UI bucket"
+  comment = "Origin Access Identity for JakshWealth UI bucket"
 }
 
 resource "aws_cloudfront_distribution" "jakshwealth-ui" {
@@ -26,7 +26,7 @@ resource "aws_cloudfront_distribution" "jakshwealth-ui" {
     bucket          = aws_s3_bucket.jakshwealth-ui-website.bucket_domain_name
     prefix          = "logs"
   }
-  aliases = var.enable_custom_domain ? ["ssa.${local.domain_name}"] : []
+  aliases = var.enable_custom_domain ? ["app.${local.domain_name}"] : []
   custom_error_response {
     error_caching_min_ttl = "300"
     error_code            = "404"
@@ -64,7 +64,7 @@ resource "aws_cloudfront_distribution" "jakshwealth-ui" {
   dynamic "viewer_certificate" {
     for_each = var.enable_custom_domain ? [1] : []
     content {
-      acm_certificate_arn      = data.aws_acm_certificate.hpp_cert[0].arn
+      acm_certificate_arn      = data.aws_acm_certificate.ui_cert[0].arn
       ssl_support_method       = "sni-only"
       minimum_protocol_version = var.minimum_protocol_version
     }
@@ -77,14 +77,14 @@ resource "aws_cloudfront_distribution" "jakshwealth-ui" {
     }
   }
   # Assigning the waf_channel tag takes care of the web_acl
-#  web_acl_id = data.aws_wafv2_web_acl.cigna_internal_only.arn
+#  web_acl_id = data.aws_wafv2_web_acl.internal_only.arn
 
   tags = merge(
-    var.cigna_tags,
+    var.project_tags,
     var.waf_tags,
     {
-      Purpose   = "Cloudfront for HPP Self-Service Analytics UI"
-      AssetName = "HPP JakshWealth UI Cloudfront"
+      Purpose   = "Cloudfront for JakshWealth UI"
+      AssetName = "JakshWealth UI Cloudfront"
     }
   )
 }

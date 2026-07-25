@@ -14,16 +14,16 @@ variable "deploy_env" {
   default = ""
 }
 
-variable "ssa_ui_website_resources" {
+variable "ui_website_resources" {
 	type = list(string)
 }
 
-variable "ssa_ui_website_users" {
+variable "ui_website_users" {
   type = list(string)
 }
 
 
-variable "cigna_tags" {
+variable "project_tags" {
   type = map
 }
 

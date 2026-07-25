@@ -107,7 +107,7 @@ Point the Angular app at the API URL in `src/environments/environment.developmen
 | Repo | Config |
 |------|--------|
 | All | `.cicd/build_props/build.properties` |
-| Infra UI TF | `s3-cloudfront-ssa/module/s3_config_vars/s3.dev.tfvars` (`enable_custom_domain=false`) |
+| Infra UI TF | `s3-cloudfront-ui/module/s3_config_vars/s3.dev.tfvars` (`enable_custom_domain=false`) |
 | Infra API TF | `code-infra/module/main/vars.dev.tfvars` (`enable_custom_domain=false`) |
 | API Lambdas | `automation_codes/terraforms/vars.dev.tfvars` (`enable_lambda_vpc=false`) |
 

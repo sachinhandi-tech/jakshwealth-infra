@@ -1,10 +1,10 @@
 resource "aws_s3_bucket" "jakshwealth-ui-website" {
-  bucket = local.ssa_ui_bucket_name
+  bucket = local.ui_bucket_name
 
   force_destroy = true
 
   tags = merge(
-    var.cigna_tags,
+    var.project_tags,
     var.waf_tags,
     {
       DataRetentionCode      = "7 Years"
@@ -40,17 +40,17 @@ resource "aws_s3_bucket_acl" "jakshwealth-ui-website-acl" {
   }
 }
 
-resource "aws_s3_bucket_policy" "hpp_ssa_ui_website_bucket_plcy" {
+resource "aws_s3_bucket_policy" "ui_website_bucket_plcy" {
   bucket = aws_s3_bucket.jakshwealth-ui-website.id
   policy = templatefile("${path.module}/jakshwealth-ui-s3_policy.tpl", {
-    key_users        = jsonencode(var.ssa_ui_website_users),
-    bucket_resources = jsonencode(var.ssa_ui_website_resources),
+    key_users        = jsonencode(var.ui_website_users),
+    bucket_resources = jsonencode(var.ui_website_resources),
     cloudfront_OAI   = jsonencode([aws_cloudfront_origin_access_identity.jakshwealth-ui-OAI.iam_arn])
   })
 
 }
 
-resource "aws_s3_bucket_versioning" "hpp_ssa_ui_website_bucket_versioning" {
+resource "aws_s3_bucket_versioning" "ui_website_bucket_versioning" {
   bucket = aws_s3_bucket.jakshwealth-ui-website.id
   versioning_configuration {
     status = "Enabled"
@@ -58,7 +58,7 @@ resource "aws_s3_bucket_versioning" "hpp_ssa_ui_website_bucket_versioning" {
 }
 
 
-resource "aws_s3_bucket_lifecycle_configuration" "hpp_ssa_ui_website_bucket_life_config" {
+resource "aws_s3_bucket_lifecycle_configuration" "ui_website_bucket_life_config" {
   bucket = aws_s3_bucket.jakshwealth-ui-website.id
 
   rule {
@@ -93,7 +93,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "hpp_ssa_ui_website_bucket_life
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "hpp_ssa_ui_website_bucket_enc_config" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "ui_website_bucket_enc_config" {
   bucket = aws_s3_bucket.jakshwealth-ui-website.bucket
 
   rule {
@@ -105,6 +105,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "hpp_ssa_ui_websit
 
 resource "aws_s3_bucket_metric" "jakshwealth-ui-website_metric" {
   depends_on = [aws_s3_bucket.jakshwealth-ui-website]
-  bucket = local.ssa_ui_bucket_name
+  bucket = local.ui_bucket_name
   name   = "EntireBucket"
 }

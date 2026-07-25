@@ -51,7 +51,7 @@ variable "cf-hostedzone" {
   default = ""
 }
 
-variable "cigna_tags" {
+variable "project_tags" {
   description = "Maps of tags required for AWS resrource"
   type = map
 }

@@ -52,14 +52,14 @@ variable "domain_name" {
 }
 
 /*
-S3 Bucket variables for HPP Self-Service Analytics UI website
+S3 Bucket variables for JakshWealth UI website
 */
 
-variable "ssa_ui_website_resources" {
+variable "ui_website_resources" {
   type = list(string)
 }
 
-variable "ssa_ui_website_users" {
+variable "ui_website_users" {
   type = list(string)
 }
 
@@ -94,7 +94,7 @@ variable "price_class" {
   default = "PriceClass_100"
 }
 
-variable "cigna_tags" {
+variable "project_tags" {
   description = "Maps of tags required for AWS resource"
   type        = map
 }

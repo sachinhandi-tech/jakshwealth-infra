@@ -111,7 +111,7 @@ pipeline {
                                 chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
                                 REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
 
-                                cd s3-cloudfront-ssa/module
+                                cd s3-cloudfront-ui/module
                                 terraform init -input=false -reconfigure -backend-config="config/dev-backend.tfvars"
                                 if [ "${TERRAFORM_ACTION}" = "apply" ]; then
                                   terraform apply -auto-approve -lock-timeout=10m \
