@@ -88,7 +88,9 @@ pipeline {
                         sh '''
                             cd bootstrap/terraform
                             terraform init -input=false
-                            terraform apply -auto-approve -var-file="vars.dev.tfvars"
+                            terraform apply -auto-approve \
+                              -var-file="vars.dev.tfvars" \
+                              -var="deploy_env=${DEPLOY_ENV}"
                         '''
                     }
                 }

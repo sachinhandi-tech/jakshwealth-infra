@@ -1,5 +1,5 @@
-deploy_env=prod
-enable_custom_domain=false
+deploy_env           = "prod"
+enable_custom_domain = false
 
 ssa_ui_website_resources = ["arn:aws:s3:::jakshwealth-ui-prod", "arn:aws:s3:::jakshwealth-ui-prod/*"]
 ssa_ui_website_users     = ["arn:aws:iam::305068201745:user/sachindad"]

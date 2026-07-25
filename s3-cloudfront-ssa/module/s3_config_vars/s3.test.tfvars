@@ -1,5 +1,5 @@
-deploy_env=test
-enable_custom_domain=false
+deploy_env           = "test"
+enable_custom_domain = false
 
 ssa_ui_website_resources = ["arn:aws:s3:::jakshwealth-ui-test", "arn:aws:s3:::jakshwealth-ui-test/*"]
 ssa_ui_website_users     = ["arn:aws:iam::305068201745:user/sachindad"]

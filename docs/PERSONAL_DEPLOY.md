@@ -46,6 +46,8 @@ terraform init
 terraform apply -var-file=vars.dev.tfvars
 ```
 
+`.tfvars` files use **HCL syntax** — quote strings (`deploy_env = "dev"`), not Java properties (`deploy_env=dev`).
+
 ## URLs after deploy (no custom domain)
 
 **UI (CloudFront):**

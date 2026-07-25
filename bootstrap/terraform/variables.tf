@@ -1,6 +1,7 @@
 variable "deploy_env" {
   type        = string
-  description = "dev, test, or prod"
+  description = "Environment suffix for bucket names (personal deploy uses dev)"
+  default     = "dev"
 }
 
 variable "aws_region" {
