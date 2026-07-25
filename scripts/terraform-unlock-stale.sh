@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # Remove stale Terraform state locks from DynamoDB (e.g. left by a local plan on a laptop).
-# Safe when Jenkins uses disableConcurrentBuilds and locks are older than STALE_MINUTES.
+# Jenkins sets REMOVE_NON_JENKINS=1 to drop locks held by non-jenkins machines immediately.
 set -euo pipefail
 
 STALE_MINUTES="${1:-30}"
 TABLE="${TERRAFORM_LOCK_TABLE:-terraform-state-lock}"
 REGION="${AWS_REGION:-us-east-1}"
+REMOVE_NON_JENKINS="${REMOVE_NON_JENKINS:-0}"
 
-echo "Checking ${TABLE} for locks older than ${STALE_MINUTES} minutes..."
+echo "Checking ${TABLE} (stale>${STALE_MINUTES}m, remove_non_jenkins=${REMOVE_NON_JENKINS})..."
 
-export STALE_MINUTES TABLE REGION
+export STALE_MINUTES TABLE REGION REMOVE_NON_JENKINS
 export SCAN_JSON
 SCAN_JSON=$(aws dynamodb scan --table-name "${TABLE}" --region "${REGION}" --output json 2>/dev/null || echo '{"Items":[]}')
 
@@ -21,6 +22,7 @@ import sys
 from datetime import datetime, timezone, timedelta
 
 stale_minutes = int(os.environ["STALE_MINUTES"])
+remove_non_jenkins = os.environ.get("REMOVE_NON_JENKINS", "0") == "1"
 table = os.environ["TABLE"]
 region = os.environ["REGION"]
 payload = json.loads(os.environ["SCAN_JSON"])
@@ -28,20 +30,37 @@ now = datetime.now(timezone.utc)
 cutoff = now - timedelta(minutes=stale_minutes)
 removed = 0
 
+
+def parse_created(raw: str) -> datetime:
+    raw = raw.strip().replace(" UTC", "")
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return datetime.strptime(raw, "%Y-%m-%d %H:%M:%S.%f %z")
+
+
 for item in payload.get("Items", []):
     lock_id = item["LockID"]["S"]
     info = json.loads(item["Info"]["S"])
     created_raw = info.get("Created", "")
     who = info.get("Who", "unknown")
+    is_jenkins = "jenkins" in who.lower()
+
     try:
-        created = datetime.strptime(created_raw.replace(" UTC", ""), "%Y-%m-%d %H:%M:%S.%f %z")
+        created = parse_created(created_raw)
     except ValueError:
         print(f"Skip (unparseable Created): {lock_id} who={who}", file=sys.stderr)
         continue
 
-    if created > cutoff:
+    if remove_non_jenkins and not is_jenkins:
+        reason = f"non-jenkins holder ({who})"
+    elif created > cutoff:
         print(f"Keep active lock ({who}): {lock_id}", file=sys.stderr)
         continue
+    else:
+        reason = f"stale ({who}, created {created_raw})"
 
     subprocess.run(
         [
@@ -52,7 +71,7 @@ for item in payload.get("Items", []):
         ],
         check=True,
     )
-    print(f"Removed stale lock ({who}, created {created_raw}): {lock_id}", file=sys.stderr)
+    print(f"Removed lock — {reason}: {lock_id}", file=sys.stderr)
     removed += 1
 
 print(removed)

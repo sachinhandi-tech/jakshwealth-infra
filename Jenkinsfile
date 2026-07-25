@@ -105,7 +105,7 @@ pipeline {
                     jakshAws {
                         sh '''
                             chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
-                            "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 30
+                            REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
 
                             cd s3-cloudfront-ssa/module
                             terraform init -backend-config="config/dev-backend.tfvars"
@@ -130,7 +130,7 @@ pipeline {
                     jakshAws {
                         sh '''
                             chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
-                            "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 30
+                            REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
 
                             cd code-infra/module/main
                             terraform init -backend-config="backend.dev.tfvars"
