@@ -104,14 +104,17 @@ pipeline {
                 script {
                     jakshAws {
                         sh '''
+                            chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
+                            "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 30
+
                             cd s3-cloudfront-ssa/module
                             terraform init -backend-config="config/dev-backend.tfvars"
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
-                              terraform apply -auto-approve \
+                              terraform apply -auto-approve -lock-timeout=10m \
                                 -var "deploy_env=${DEPLOY_ENV}" \
                                 -var-file="s3_config_vars/s3.dev.tfvars"
                             else
-                              terraform plan \
+                              terraform plan -lock-timeout=10m \
                                 -var "deploy_env=${DEPLOY_ENV}" \
                                 -var-file="s3_config_vars/s3.dev.tfvars"
                             fi
@@ -126,12 +129,15 @@ pipeline {
                 script {
                     jakshAws {
                         sh '''
+                            chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
+                            "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 30
+
                             cd code-infra/module/main
                             terraform init -backend-config="backend.dev.tfvars"
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
-                              terraform apply -auto-approve -var-file="vars.dev.tfvars"
+                              terraform apply -auto-approve -lock-timeout=10m -var-file="vars.dev.tfvars"
                             else
-                              terraform plan -var-file="vars.dev.tfvars"
+                              terraform plan -lock-timeout=10m -var-file="vars.dev.tfvars"
                             fi
                         '''
                     }
