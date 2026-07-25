@@ -2,7 +2,7 @@
 # Install Jenkins server prerequisites for JakshWealth pipelines (run as ec2-user with sudo).
 set -euo pipefail
 
-TF_VERSION="${TF_VERSION:-1.1.9}"
+TF_VERSION="${TF_VERSION:-1.6.6}"
 
 echo "Installing Terraform ${TF_VERSION} and checking AWS CLI..."
 

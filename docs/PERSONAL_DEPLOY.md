@@ -10,6 +10,8 @@ aws configure set region ap-south-2 --profile jakshwealth
 
 If you previously created buckets in `us-east-1`, bootstrap again in `ap-south-2` (new S3 bucket names in the new region) or destroy old resources first.
 
+Bucket names include a region suffix (`-aps2` for `ap-south-2`) because S3 names are globally unique — you cannot reuse `jakshwealth-infra-dev` from `us-east-1` in Hyderabad.
+
 ## What gets created (in order)
 
 | Step | Jenkins job / command | Creates |
@@ -39,7 +41,7 @@ As the `jenkins` user:
 
 ```bash
 aws configure --profile jakshwealth   # same keys as local
-terraform version                     # needs >= 1.1.9
+terraform version                     # needs >= 1.6.0 for ap-south-2 S3 backend (or skip_region_validation in backend tfvars)
 ```
 
 Or run `scripts/install-jenkins-prerequisites.sh` from `jakshwealth-infra`.

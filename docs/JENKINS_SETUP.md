@@ -58,8 +58,8 @@ chmod +x install-jenkins-prerequisites.sh
 Or install manually:
 
 ```bash
-# Terraform 1.1.9 (matches repo required_version)
-curl -fsSL https://releases.hashicorp.com/terraform/1.1.9/terraform_1.1.9_linux_amd64.zip -o /tmp/terraform.zip
+# Terraform >= 1.6.0 (ap-south-2 S3 backend; install script defaults to 1.6.6)
+curl -fsSL https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_linux_amd64.zip -o /tmp/terraform.zip
 sudo unzip -o /tmp/terraform.zip -d /usr/local/bin
 sudo chmod +x /usr/local/bin/terraform
 terraform version

@@ -72,7 +72,10 @@ pipeline {
             steps {
                 script {
                     jakshAws {
-                        sh 'aws sts get-caller-identity'
+                        sh '''
+                            terraform version
+                            aws sts get-caller-identity
+                        '''
                     }
                 }
             }
