@@ -8,61 +8,54 @@
 |-------|--------|
 | Kind | Username with password |
 | Username | `sachinhandi-tech` |
-| Password | GitHub Personal Access Token (not login password) |
-| ID | `github-sachinhandi-tech` |
-
-Use this credential in each multibranch pipeline under **Branch Sources**.
+| Password | GitHub Personal Access Token |
+| ID | `jakshwealth-ui` (or any ID — select it in Branch Sources) |
 
 ---
 
-## 2. AWS (Terraform + S3 deploy)
+## 2. AWS (default — profile on Jenkins server)
 
-**Console login password cannot be used by Jenkins, Terraform, or AWS CLI.**
+Pipelines use **`AWS_PROFILE=jakshwealth`** from `.cicd/build_props/*.properties`.
+`aws_credentials_id` is **empty** by default (no Jenkins AWS credential required).
 
-Use IAM user **`sachindad`** programmatic access keys:
-
-1. AWS Console → IAM → Users → **sachindad** → Security credentials
-2. **Create access key** → CLI
-3. In Jenkins: **Manage Jenkins → Credentials → Add**
-
-| Field | Value |
-|-------|--------|
-| Kind | **AWS Credentials** |
-| ID | `jakshwealth-aws` |
-| Access Key ID | from step 2 |
-| Secret Access Key | from step 2 |
-
-All JakshWealth Jenkinsfiles bind credential ID `jakshwealth-aws` (see `.cicd/build_props/*.properties`).
-
-Verify on Jenkins server after saving:
+On the Jenkins server, run **as the `jenkins` user**:
 
 ```bash
-# Jenkins writes ~/.aws/credentials during the build; manual test:
+sudo -u jenkins bash
+./scripts/setup-jenkins-aws.sh jakshwealth
+# Or: aws configure --profile jakshwealth
 aws sts get-caller-identity --profile jakshwealth
 ```
 
+Use **IAM access keys** for user `sachindad` (console password does not work for CLI/Terraform).
+
 ---
 
-## 3. Tools on Jenkins server
+## 3. AWS (optional — Jenkins credential)
 
-- Node.js 20+ / npm (UI)
-- Python 3 (API)
+To store keys in Jenkins instead of `~/.aws/credentials`:
+
+1. **Manage Jenkins → Credentials → Add → AWS Credentials**
+2. ID: `jakshwealth-aws`
+3. Set in `.cicd/build_props/*.properties`:
+   ```
+   aws_credentials_id=jakshwealth-aws
+   ```
+
+---
+
+## 4. Tools on Jenkins server
+
 - Terraform 1.1.9+
 - AWS CLI v2
+- Python 3 (API pipeline)
+- Node.js 20+ / npm (UI pipeline)
 - git
 
 ---
 
-## 4. Deploy order
+## 5. Deploy order
 
-1. **jakshwealth-infra** — S3, CloudFront, API Gateway shell
-2. **jakshwealth-api** — Lambdas + integrations
-3. **jakshwealth-ui** — build + S3 sync
-
----
-
-## Security
-
-- Never commit AWS keys or passwords to git
-- Rotate any credential shared in chat or logs
-- Prefer IAM user keys over root account for automation
+1. **jakshwealth-infra** — `TERRAFORM_ACTION=apply`
+2. **jakshwealth-api** — `TERRAFORM_ACTION=apply`
+3. **jakshwealth-ui**
