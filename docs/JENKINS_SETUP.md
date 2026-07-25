@@ -64,6 +64,13 @@ sudo unzip -o /tmp/terraform.zip -d /usr/local/bin
 sudo chmod +x /usr/local/bin/terraform
 terraform version
 
+# Node.js 20+ (jakshwealth-ui Angular build)
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+sudo dnf install -y nodejs   # Amazon Linux 2023
+# sudo yum install -y nodejs  # Amazon Linux 2
+node --version
+npm --version
+
 # AWS CLI (if missing)
 sudo dnf install -y awscli   # Amazon Linux 2023
 # sudo yum install -y awscli  # Amazon Linux 2

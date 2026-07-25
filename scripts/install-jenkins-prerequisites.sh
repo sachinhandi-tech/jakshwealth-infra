@@ -3,8 +3,9 @@
 set -euo pipefail
 
 TF_VERSION="${TF_VERSION:-1.6.6}"
+NODE_MAJOR="${NODE_MAJOR:-20}"
 
-echo "Installing Terraform ${TF_VERSION} and checking AWS CLI..."
+echo "Installing Terraform ${TF_VERSION}, Node.js ${NODE_MAJOR}.x, and checking AWS CLI..."
 
 if ! command -v aws >/dev/null 2>&1; then
   if command -v dnf >/dev/null 2>&1; then
@@ -22,10 +23,21 @@ if ! command -v terraform >/dev/null 2>&1 || [[ "$(terraform version -json 2>/de
   rm -rf "${TMP}"
 fi
 
+if ! command -v node >/dev/null 2>&1; then
+  curl -fsSL "https://rpm.nodesource.com/setup_${NODE_MAJOR}.x" | sudo bash -
+  if command -v dnf >/dev/null 2>&1; then
+    sudo dnf install -y nodejs
+  else
+    sudo yum install -y nodejs
+  fi
+fi
+
 echo ""
 echo "Installed versions:"
 aws --version
 terraform version
+node --version
+npm --version
 
 echo ""
 echo "Ensure jenkins user has AWS profile jakshwealth:"
