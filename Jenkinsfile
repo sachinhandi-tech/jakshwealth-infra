@@ -88,6 +88,8 @@ pipeline {
                         sh '''
                             cd bootstrap/terraform
                             terraform init -input=false
+                            chmod +x import-existing.sh
+                            ./import-existing.sh "${DEPLOY_ENV}" terraform-state-lock
                             terraform apply -auto-approve \
                               -var-file="vars.dev.tfvars" \
                               -var="deploy_env=${DEPLOY_ENV}"
