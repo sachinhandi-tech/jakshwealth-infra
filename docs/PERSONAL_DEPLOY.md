@@ -52,6 +52,22 @@ If you previously ran `scripts/bootstrap-aws-dev.sh`, the import step adopts tho
 
 `.tfvars` files use **HCL syntax** — quote strings (`deploy_env = "dev"`), not Java properties (`deploy_env=dev`).
 
+## Terraform state locks (local laptop vs Jenkins)
+
+All stacks share one DynamoDB table: `terraform-state-lock`. If you run `terraform plan` **on your Mac** against the same S3 backend, the lock metadata shows your machine name (e.g. `c8r4vx@ML6KWN7Y13`) — that is normal.
+
+**Do not** run local Terraform against `jakshwealth-infra-dev` state while Jenkins is deploying. If a lock is left behind:
+
+```bash
+# Option A — remove locks older than 30 minutes (Jenkins runs this automatically)
+./scripts/terraform-unlock-stale.sh 30
+
+# Option B — force-unlock a specific lock ID from the Jenkins error
+cd s3-cloudfront-ssa/module
+terraform init -backend-config=config/dev-backend.tfvars
+terraform force-unlock -force <LOCK_ID>
+```
+
 ## URLs after deploy (no custom domain)
 
 **UI (CloudFront):**
