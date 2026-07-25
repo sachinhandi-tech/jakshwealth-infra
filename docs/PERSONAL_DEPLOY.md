@@ -43,8 +43,12 @@ GitHub credential ID `jakshwealth-ui` (PAT) for private repo clones.
 ```bash
 cd jakshwealth-infra/bootstrap/terraform
 terraform init
+chmod +x import-existing.sh
+./import-existing.sh dev terraform-state-lock
 terraform apply -var-file=vars.dev.tfvars
 ```
+
+If you previously ran `scripts/bootstrap-aws-dev.sh`, the import step adopts those resources into Terraform state so apply does not fail with "already exists".
 
 `.tfvars` files use **HCL syntax** — quote strings (`deploy_env = "dev"`), not Java properties (`deploy_env=dev`).
 
