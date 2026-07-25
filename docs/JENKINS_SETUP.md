@@ -46,10 +46,40 @@ To store keys in Jenkins instead of `~/.aws/credentials`:
 
 ## 4. Tools on Jenkins server
 
-- Terraform 1.1.9+
-- AWS CLI v2
-- Python 3 (API pipeline)
-- Node.js 20+ / npm (UI pipeline)
+Run on the EC2 host **as ec2-user** (once):
+
+```bash
+cd /tmp
+curl -fsSL -O https://raw.githubusercontent.com/sachinhandi-tech/jakshwealth-infra/main/scripts/install-jenkins-prerequisites.sh
+chmod +x install-jenkins-prerequisites.sh
+./install-jenkins-prerequisites.sh
+```
+
+Or install manually:
+
+```bash
+# Terraform 1.1.9 (matches repo required_version)
+curl -fsSL https://releases.hashicorp.com/terraform/1.1.9/terraform_1.1.9_linux_amd64.zip -o /tmp/terraform.zip
+sudo unzip -o /tmp/terraform.zip -d /usr/local/bin
+sudo chmod +x /usr/local/bin/terraform
+terraform version
+
+# AWS CLI (if missing)
+sudo dnf install -y awscli   # Amazon Linux 2023
+# sudo yum install -y awscli  # Amazon Linux 2
+```
+
+Verify **as jenkins**:
+
+```bash
+sudo -u jenkins terraform version
+sudo -u jenkins aws sts get-caller-identity --profile jakshwealth
+```
+
+Also needed for other pipelines:
+
+- Python 3 (jakshwealth-api)
+- Node.js 20+ / npm (jakshwealth-ui)
 - git
 
 ---
