@@ -111,11 +111,5 @@ variable "waf_tags" {
 
 variable "owner_canonical_id" {
   type        = string
-  description = "canonical for s3"
-}
-
-variable "grantee_canonical_id" {
-  type        = string
-  description = "canonical for s3"
-  default     = "c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0"
+  description = "S3 bucket owner canonical user ID for this AWS account."
 }

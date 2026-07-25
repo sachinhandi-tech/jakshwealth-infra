@@ -29,7 +29,7 @@ resource "aws_s3_bucket_acl" "jakshwealth-ui-website-acl" {
   access_control_policy {
     grant {
       grantee {
-        id   = var.grantee_canonical_id
+        id   = var.owner_canonical_id
         type = "CanonicalUser"
       }
       permission = "FULL_CONTROL"
@@ -43,6 +43,7 @@ resource "aws_s3_bucket_acl" "jakshwealth-ui-website-acl" {
 resource "aws_s3_bucket_policy" "ui_website_bucket_plcy" {
   bucket = aws_s3_bucket.jakshwealth-ui-website.id
   policy = templatefile("${path.module}/jakshwealth-ui-s3_policy.tpl", {
+    account_id       = data.aws_caller_identity.current.account_id
     key_users        = jsonencode(var.ui_website_users),
     bucket_resources = jsonencode(var.ui_website_resources),
     cloudfront_OAI   = jsonencode([aws_cloudfront_origin_access_identity.jakshwealth-ui-OAI.iam_arn])

@@ -3,7 +3,16 @@
     "Id": "jakshwealth-ui-bucket-policy",
     "Statement": [
         {
-            "Sid": "Stmt1552079734001",
+            "Sid": "AllowAccountOwner",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::${account_id}:root"
+            },
+            "Action": "s3:*",
+            "Resource": ${bucket_resources}
+        },
+        {
+            "Sid": "AllowDeployUsers",
             "Effect": "Allow",
             "Principal": {
                 "AWS": ${key_users}
@@ -17,7 +26,7 @@
             "Resource": ${bucket_resources}
         },
         {
-            "Sid": "Allow Cloudfront to access S3 bucket",
+            "Sid": "AllowCloudFrontOAI",
             "Effect": "Allow",
             "Principal": {
                 "AWS": ${cloudfront_OAI}
@@ -25,7 +34,7 @@
             "Action": [
                 "s3:GetObject",
                 "s3:ListBucket"
-             ],
+            ],
             "Resource": ${bucket_resources}
         }
     ]
