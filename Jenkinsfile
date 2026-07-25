@@ -101,24 +101,26 @@ pipeline {
 
         stage('UI hosting (S3 + CloudFront)') {
             steps {
-                script {
-                    jakshAws {
-                        sh '''
-                            chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
-                            REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
+                catchError(buildResult: null, stageResult: 'FAILURE') {
+                    script {
+                        jakshAws {
+                            sh '''
+                                chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
+                                REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
 
-                            cd s3-cloudfront-ssa/module
-                            terraform init -backend-config="config/dev-backend.tfvars"
-                            if [ "${TERRAFORM_ACTION}" = "apply" ]; then
-                              terraform apply -auto-approve -lock-timeout=10m \
-                                -var "deploy_env=${DEPLOY_ENV}" \
-                                -var-file="s3_config_vars/s3.dev.tfvars"
-                            else
-                              terraform plan -lock-timeout=10m \
-                                -var "deploy_env=${DEPLOY_ENV}" \
-                                -var-file="s3_config_vars/s3.dev.tfvars"
-                            fi
-                        '''
+                                cd s3-cloudfront-ssa/module
+                                terraform init -backend-config="config/dev-backend.tfvars"
+                                if [ "${TERRAFORM_ACTION}" = "apply" ]; then
+                                  terraform apply -auto-approve -lock-timeout=10m \
+                                    -var "deploy_env=${DEPLOY_ENV}" \
+                                    -var-file="s3_config_vars/s3.dev.tfvars"
+                                else
+                                  terraform plan -lock-timeout=10m \
+                                    -var "deploy_env=${DEPLOY_ENV}" \
+                                    -var-file="s3_config_vars/s3.dev.tfvars"
+                                fi
+                            '''
+                        }
                     }
                 }
             }

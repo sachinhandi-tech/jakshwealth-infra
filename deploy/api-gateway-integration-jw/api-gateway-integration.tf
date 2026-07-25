@@ -1,10 +1,6 @@
-data "terraform_remote_state" "authorizer_state" {
-  backend = "s3"
-  config = {
-    bucket = "jakshwealth-infra-${var.stage}"
-    key    = "${var.stage}/jakshwealth/terraform.tfstate"
-    region = var.region
-  }
+data "external" "jw_authorizer" {
+  count   = var.authorization == "false" ? 0 : 1
+  program = ["bash", "${path.module}/lookup_authorizer.sh"]
 }
 
 resource "aws_api_gateway_method" "request_method" {
@@ -12,7 +8,7 @@ resource "aws_api_gateway_method" "request_method" {
   resource_id   = var.resource_id
   http_method   = var.method
   authorization = var.authorization == "false" ? "NONE" : "CUSTOM"
-  authorizer_id = var.authorization == "false" ? "" : data.terraform_remote_state.authorizer_state.outputs.jw_authorization_authorizer_id
+  authorizer_id = var.authorization == "false" ? "" : data.external.jw_authorizer[0].result.authorizer_id
   request_parameters = var.authorization == "false" ? {} : var.auth_request_param
 }
 
