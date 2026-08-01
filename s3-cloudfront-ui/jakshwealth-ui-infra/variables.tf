@@ -37,6 +37,36 @@ variable "use_s3_website_origin" {
   default     = false
 }
 
+variable "cloudfront_origin_id_override" {
+  type        = string
+  description = "Match an imported CloudFront origin id (console-generated suffix)."
+  default     = ""
+}
+
+variable "cloudfront_cache_policy_id" {
+  type        = string
+  description = "Managed cache policy for imported CloudFront distributions."
+  default     = ""
+}
+
+variable "cloudfront_web_acl_id" {
+  type        = string
+  description = "Optional WAF web ACL ARN attached to the distribution."
+  default     = ""
+}
+
+variable "cloudfront_viewer_protocol_policy" {
+  type        = string
+  description = "Viewer protocol policy for the default cache behavior."
+  default     = "redirect-to-https"
+}
+
+variable "enable_custom_domain" {
+  type        = bool
+  description = "Use ACM cert + custom DNS alias (requires Route53 + certificate in AWS)"
+  default     = false
+}
+
 variable "deploy_env" {
   default = ""
 }

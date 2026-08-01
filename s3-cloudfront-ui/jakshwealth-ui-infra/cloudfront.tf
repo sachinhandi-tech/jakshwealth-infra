@@ -12,7 +12,7 @@ resource "aws_cloudfront_distribution" "jakshwealth-ui" {
 
   origin {
     domain_name = var.use_s3_website_origin ? "${aws_s3_bucket.jakshwealth-ui-website.bucket}.s3-website.${var.aws_region}.amazonaws.com" : aws_s3_bucket.jakshwealth-ui-website.bucket_regional_domain_name
-    origin_id   = "S3-${aws_s3_bucket.jakshwealth-ui-website.id}"
+    origin_id   = local.cloudfront_origin_id
 
     dynamic "s3_origin_config" {
       for_each = var.use_s3_website_origin ? [] : [1]
@@ -35,11 +35,16 @@ resource "aws_cloudfront_distribution" "jakshwealth-ui" {
   enabled             = true
   is_ipv6_enabled     = var.cf-ipv6
   default_root_object = "index.html"
-  logging_config {
-    include_cookies = false
-    bucket          = aws_s3_bucket.jakshwealth-ui-website.bucket_domain_name
-    prefix          = "logs"
+
+  dynamic "logging_config" {
+    for_each = var.use_s3_website_origin ? [] : [1]
+    content {
+      include_cookies = false
+      bucket          = aws_s3_bucket.jakshwealth-ui-website.bucket_domain_name
+      prefix          = "logs"
+    }
   }
+
   aliases = var.enable_custom_domain ? ["app.${local.domain_name}"] : []
 
   # S3 REST origins return 403 (not 404) for missing keys when using OAI.
@@ -59,24 +64,30 @@ resource "aws_cloudfront_distribution" "jakshwealth-ui" {
   }
 
   default_cache_behavior {
-    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "S3-${aws_s3_bucket.jakshwealth-ui-website.id}"
+    allowed_methods        = var.use_s3_website_origin ? ["GET", "HEAD"] : ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = local.cloudfront_origin_id
+    cache_policy_id        = var.use_s3_website_origin && var.cloudfront_cache_policy_id != "" ? var.cloudfront_cache_policy_id : null
+    viewer_protocol_policy = var.use_s3_website_origin ? var.cloudfront_viewer_protocol_policy : "redirect-to-https"
+    compress               = true
 
-    forwarded_values {
-      query_string = false
+    dynamic "forwarded_values" {
+      for_each = var.use_s3_website_origin && var.cloudfront_cache_policy_id != "" ? [] : [1]
+      content {
+        query_string = false
 
-      cookies {
-        forward = var.cf_cookies
+        cookies {
+          forward = var.cf_cookies
+        }
       }
     }
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
-    compress               = true
+
+    min_ttl     = var.use_s3_website_origin && var.cloudfront_cache_policy_id != "" ? null : 0
+    default_ttl = var.use_s3_website_origin && var.cloudfront_cache_policy_id != "" ? null : 3600
+    max_ttl     = var.use_s3_website_origin && var.cloudfront_cache_policy_id != "" ? null : 86400
   }
 
+  web_acl_id  = var.cloudfront_web_acl_id != "" ? var.cloudfront_web_acl_id : null
   price_class = var.price_class
   restrictions {
     geo_restriction {

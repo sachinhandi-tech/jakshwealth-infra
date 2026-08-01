@@ -16,6 +16,30 @@ variable "use_s3_website_origin" {
   default     = false
 }
 
+variable "cloudfront_origin_id_override" {
+  type    = string
+  default = ""
+}
+
+variable "cloudfront_cache_policy_id" {
+  type    = string
+  default = ""
+}
+
+variable "cloudfront_web_acl_id" {
+  type    = string
+  default = ""
+}
+
+variable "cloudfront_viewer_protocol_policy" {
+  type    = string
+  default = "redirect-to-https"
+}
+
+variable "price_class" {
+  default = "PriceClass_100"
+}
+
 variable "enable_custom_domain" {
   type        = bool
   description = "Enable Route53/ACM-backed custom domain (personal AWS: leave false)"

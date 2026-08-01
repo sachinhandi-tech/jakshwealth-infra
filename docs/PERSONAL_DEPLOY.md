@@ -94,12 +94,12 @@ aws cloudfront list-distributions \
 
 SPA deep links (`/stock-analysis`, etc.) require CloudFront custom error responses mapping **403** and **404** to `/index.html`. Terraform configures this in `s3-cloudfront-ui/jakshwealth-ui-infra/cloudfront.tf`.
 
-If `jakshwealth.com` and its CloudFront distribution were created manually before Terraform, import them once before the infra Jenkins job applies:
+If `jakshwealth.com` and its CloudFront distribution were created manually before Terraform, import them once (from repo root):
 
 ```bash
+./scripts/import-jakshwealth-ui.sh
 cd s3-cloudfront-ui/module
-terraform import -var-file=../s3_config_vars/s3.dev.tfvars module.jakshwealth-ui-infra.aws_s3_bucket.jakshwealth-ui-website jakshwealth.com
-terraform import -var-file=../s3_config_vars/s3.dev.tfvars module.jakshwealth-ui-infra.aws_cloudfront_distribution.jakshwealth-ui E2TQ76Z4FZC0WK
+terraform apply -auto-approve -var deploy_env=dev -var-file=s3_config_vars/s3.dev.tfvars
 ```
 
 **API (execute-api):**
