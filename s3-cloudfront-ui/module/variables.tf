@@ -4,6 +4,18 @@ variable "aws_region" {
   default     = "ap-south-2"
 }
 
+variable "ui_bucket_name_override" {
+  type        = string
+  description = "Override UI S3 bucket name (e.g. jakshwealth.com)."
+  default     = ""
+}
+
+variable "use_s3_website_origin" {
+  type        = bool
+  description = "Use the S3 static website endpoint as the CloudFront custom origin."
+  default     = false
+}
+
 variable "enable_custom_domain" {
   type        = bool
   description = "Enable Route53/ACM-backed custom domain (personal AWS: leave false)"

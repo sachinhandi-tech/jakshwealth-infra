@@ -7,5 +7,9 @@ output "cf_endpoint" {
 }
 
 output "cf_hosted_zone_id" {
-  value =aws_cloudfront_distribution.jakshwealth-ui.hosted_zone_id
+  value = aws_cloudfront_distribution.jakshwealth-ui.hosted_zone_id
+}
+
+output "cloudfront_distribution_id" {
+  value = aws_cloudfront_distribution.jakshwealth-ui.id
 }

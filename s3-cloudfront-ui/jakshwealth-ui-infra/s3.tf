@@ -46,9 +46,22 @@ resource "aws_s3_bucket_policy" "ui_website_bucket_plcy" {
     account_id       = data.aws_caller_identity.current.account_id
     key_users        = jsonencode(var.ui_website_users),
     bucket_resources = jsonencode(var.ui_website_resources),
-    cloudfront_OAI   = jsonencode([aws_cloudfront_origin_access_identity.jakshwealth-ui-OAI.iam_arn])
+    cloudfront_OAI   = var.use_s3_website_origin ? jsonencode([]) : jsonencode([aws_cloudfront_origin_access_identity.jakshwealth-ui-OAI[0].iam_arn])
+    public_read      = var.use_s3_website_origin
   })
+}
 
+resource "aws_s3_bucket_website_configuration" "ui_website_bucket_website" {
+  count  = var.use_s3_website_origin ? 1 : 0
+  bucket = aws_s3_bucket.jakshwealth-ui-website.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "index.html"
+  }
 }
 
 resource "aws_s3_bucket_versioning" "ui_website_bucket_versioning" {

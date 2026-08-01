@@ -24,7 +24,7 @@
                 "s3:Delete*"
             ],
             "Resource": ${bucket_resources}
-        },
+        }%{ if length(jsondecode(cloudfront_OAI)) > 0 ~},
         {
             "Sid": "AllowCloudFrontOAI",
             "Effect": "Allow",
@@ -36,6 +36,13 @@
                 "s3:ListBucket"
             ],
             "Resource": ${bucket_resources}
-        }
+        }%{ endif ~}%{ if public_read ~},
+        {
+            "Sid": "AllowPublicReadForWebsiteOrigin",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": ${bucket_resources}
+        }%{ endif ~}
     ]
 }

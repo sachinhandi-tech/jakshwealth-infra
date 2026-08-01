@@ -25,12 +25,17 @@ variable "logs_bucket" {
   }
 }
 
-variable "enable_custom_domain" {
-  type        = bool
-  description = "Use ACM cert + custom DNS alias (requires Route53 + certificate in AWS)"
-  default     = false
+variable "ui_bucket_name_override" {
+  type        = string
+  description = "Override UI S3 bucket name (e.g. jakshwealth.com)."
+  default     = ""
 }
 
+variable "use_s3_website_origin" {
+  type        = bool
+  description = "Use the S3 static website endpoint as the CloudFront custom origin."
+  default     = false
+}
 
 variable "deploy_env" {
   default = ""

@@ -7,10 +7,12 @@ module "jakshwealth-ui-infra" {
   deploy_env               = var.deploy_env
   enable_custom_domain     = var.enable_custom_domain
   aws_region               = var.aws_region
-  ui_website_resources = var.ui_website_resources
-  ui_website_users     = var.ui_website_users
+  ui_bucket_name_override  = var.ui_bucket_name_override
+  use_s3_website_origin    = var.use_s3_website_origin
+  ui_website_resources     = var.ui_website_resources
+  ui_website_users         = var.ui_website_users
   owner_canonical_id       = var.owner_canonical_id
-  project_tags               = var.project_tags
+  project_tags             = var.project_tags
 }
 
 module "jakshwealth-ui-backend-infra" {

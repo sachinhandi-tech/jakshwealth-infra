@@ -9,5 +9,5 @@ locals {
     infra_state_bucket_name = lookup(var.infra_state_bucket, var.deploy_env, "jakshwealth-infra-${var.deploy_env}-${local.region_bucket_suffix}")
     domain_name            = lookup(var.domain_name, var.deploy_env, "jakshwealth-dev.example.com")
     alert_funnel_arn       = lookup(var.alert_funnel_arn, var.deploy_env, "")
-    ui_bucket_name     = "jakshwealth-ui-${var.deploy_env}-${local.region_bucket_suffix}"
+    ui_bucket_name     = var.ui_bucket_name_override != "" ? var.ui_bucket_name_override : "jakshwealth-ui-${var.deploy_env}-${local.region_bucket_suffix}"
 }

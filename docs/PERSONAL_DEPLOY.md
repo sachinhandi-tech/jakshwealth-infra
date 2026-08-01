@@ -17,7 +17,7 @@ Bucket names include a region suffix (`-aps2` for `ap-south-2`) because S3 names
 | Step | Jenkins job / command | Creates |
 |------|----------------------|---------|
 | 1 | `jakshwealth-infra` pipeline → Bootstrap | S3: `jakshwealth-infra-dev-aps2`, `jakshwealth-artifacts-dev-aps2`, `jakshwealth-logs-dev-aps2`; DynamoDB: `terraform-state-lock` |
-| 2 | `jakshwealth-infra` → UI hosting | S3: `jakshwealth-ui-dev-aps2`; CloudFront distribution |
+| 2 | `jakshwealth-infra` → UI hosting | S3: `jakshwealth.com`; CloudFront distribution (`E2TQ76Z4FZC0WK`) |
 | 3 | `jakshwealth-infra` → API Gateway | REST API `jw-api` with execute-api URL (no custom domain) |
 | 4 | `jakshwealth-api` pipeline | Lambda functions + API integrations |
 | 5 | `jakshwealth-ui` pipeline | Angular build → S3 sync → CloudFront invalidation |
@@ -87,9 +87,19 @@ AWS_PROFILE=jakshwealth REMOVE_NON_JENKINS=1 ./scripts/terraform-unlock-stale.sh
 **UI (CloudFront):**
 
 ```bash
-aws cloudfront list-distributions --profile jakshwealth \
-  --query "DistributionList.Items[?Origins.Items[0].Id=='S3-jakshwealth-ui-dev'].DomainName" \
+aws cloudfront list-distributions \
+  --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, 'jakshwealth.com')].DomainName | [0]" \
   --output text
+```
+
+SPA deep links (`/stock-analysis`, etc.) require CloudFront custom error responses mapping **403** and **404** to `/index.html`. Terraform configures this in `s3-cloudfront-ui/jakshwealth-ui-infra/cloudfront.tf`.
+
+If `jakshwealth.com` and its CloudFront distribution were created manually before Terraform, import them once before the infra Jenkins job applies:
+
+```bash
+cd s3-cloudfront-ui/module
+terraform import -var-file=../s3_config_vars/s3.dev.tfvars module.jakshwealth-ui-infra.aws_s3_bucket.jakshwealth-ui-website jakshwealth.com
+terraform import -var-file=../s3_config_vars/s3.dev.tfvars module.jakshwealth-ui-infra.aws_cloudfront_distribution.jakshwealth-ui E2TQ76Z4FZC0WK
 ```
 
 **API (execute-api):**
