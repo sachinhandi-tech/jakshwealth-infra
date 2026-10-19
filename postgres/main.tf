@@ -163,9 +163,15 @@ resource "aws_secretsmanager_secret_version" "postgres" {
     port         = aws_db_instance.postgres.port
     dbname       = aws_db_instance.postgres.db_name
     url          = "postgresql+psycopg://${aws_db_instance.postgres.username}:${random_password.db.result}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${aws_db_instance.postgres.db_name}?sslmode=require"
-    fernet_key   = local.fernet_key
-    state_secret = random_password.state.result
+    fernet_key      = local.fernet_key
+    state_secret    = random_password.state.result
+    kite_api_key    = var.kite_api_key
+    kite_api_secret = var.kite_api_secret
   })
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
 }
 
 data "aws_iam_roles" "kite" {
