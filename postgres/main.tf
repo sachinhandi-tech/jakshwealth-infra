@@ -178,6 +178,21 @@ data "aws_iam_roles" "kite" {
   name_regex = "^JW_jw_kite_${var.environment}$"
 }
 
+resource "aws_iam_role_policy" "kite_scan_invoke" {
+  count = length(data.aws_iam_roles.kite.names) > 0 ? 1 : 0
+  name  = "jakshwealth-${var.environment}-kite-scan-invoke"
+  role  = tolist(data.aws_iam_roles.kite.names)[0]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["lambda:InvokeFunction"]
+      Resource = "arn:aws:lambda:${var.aws_region}:*:function:jw_kite"
+    }]
+  })
+}
+
 resource "aws_iam_role_policy" "kite_db" {
   count = length(data.aws_iam_roles.kite.names) > 0 ? 1 : 0
   name  = "jakshwealth-${var.environment}-postgres-read"
