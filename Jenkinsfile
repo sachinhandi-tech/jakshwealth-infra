@@ -49,6 +49,10 @@ pipeline {
         )
     }
 
+    environment {
+        TF_PLUGIN_CACHE_DIR = "${env.HOME}/.terraform.d/plugin-cache"
+    }
+
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         timestamps()
@@ -65,6 +69,25 @@ pipeline {
                     env.AWS_REGION = props.aws_region ?: 'ap-south-2'
                     env.DEPLOY_ENV = props.deploy_env ?: 'dev'
                 }
+            }
+        }
+
+        stage('Free disk for Terraform providers') {
+            steps {
+                sh '''
+                    echo "Disk before cleanup:"
+                    df -h "${WORKSPACE}"
+                    find "${WORKSPACE}" -type d -name .terraform -prune -exec rm -rf {} +
+                    mkdir -p "${TF_PLUGIN_CACHE_DIR}"
+                    echo "Disk after removing workspace provider copies:"
+                    df -h "${WORKSPACE}"
+                    avail_kb=$(df -Pk "${WORKSPACE}" | awk 'NR==2 {print $4}')
+                    if [ "${avail_kb}" -lt 800000 ]; then
+                        echo "Less than 800MB is free. Old Jenkins workspaces are still filling the disk."
+                        du -xh --max-depth 2 "${HOME}/workspace" 2>/dev/null | sort -h | tail -n 20 || true
+                        exit 1
+                    fi
+                '''
             }
         }
 
