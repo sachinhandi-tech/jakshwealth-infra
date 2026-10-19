@@ -1,0 +1,5 @@
+.terraform/
+parallel-test.tfstate
+parallel-test.tfstate.*
+*.tfvars
+crash.log

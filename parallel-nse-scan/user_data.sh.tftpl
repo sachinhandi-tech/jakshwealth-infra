@@ -1,0 +1,59 @@
+#!/bin/bash
+set -euo pipefail
+exec > >(tee /var/log/parallel-nse-scan-bootstrap.log | logger -t parallel-nse-scan) 2>&1
+
+dnf upgrade -y
+dnf install -y python3 python3-pip
+python3 -m pip install --no-cache-dir 'kiteconnect>=5.0.1,<6'
+
+if ! id nse-scan >/dev/null 2>&1; then
+  useradd --system --home-dir /opt/nse-scan --create-home --shell /sbin/nologin nse-scan
+fi
+install -d -o root -g root -m 0755 /opt/nse-scan
+install -d -o nse-scan -g nse-scan -m 0750 /var/lib/nse-scan
+install -d -o root -g nse-scan -m 0750 /etc/jakshwealth-parallel
+
+python3 - <<'PY'
+import base64
+import gzip
+from pathlib import Path
+files = {
+    "breakout.py": "${breakout_b64}",
+    "market.py": "${market_b64}",
+    "server.py": "${server_b64}",
+}
+root = Path("/opt/nse-scan")
+for name, payload in files.items():
+    (root / name).write_bytes(gzip.decompress(base64.b64decode(payload)))
+PY
+chown -R root:root /opt/nse-scan
+chmod 0644 /opt/nse-scan/*.py
+
+cat > /etc/systemd/system/nse-scan.service <<'UNIT'
+[Unit]
+Description=JakshWealth parallel NSE breakout scan
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nse-scan
+Group=nse-scan
+WorkingDirectory=/opt/nse-scan
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/opt/nse-scan
+ExecStart=/usr/bin/python3 /opt/nse-scan/server.py
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/nse-scan
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now nse-scan.service
