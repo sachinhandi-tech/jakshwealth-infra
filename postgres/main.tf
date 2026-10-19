@@ -46,7 +46,7 @@ locals {
     Environment = var.environment
     ManagedBy   = "terraform"
   }
-  fernet_key = replace(replace(base64encode(random_bytes.fernet.result), "+", "-"), "/", "_")
+  fernet_key = replace(replace(random_bytes.fernet.base64, "+", "-"), "/", "_")
 }
 
 resource "aws_vpc" "postgres" {
