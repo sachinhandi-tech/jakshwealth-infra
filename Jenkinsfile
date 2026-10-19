@@ -129,6 +129,27 @@ pipeline {
             }
         }
 
+        stage('Subscriber Postgres') {
+            steps {
+                script {
+                    jakshAws {
+                        sh '''
+                            chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
+                            REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
+
+                            cd postgres
+                            terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
+                            if [ "${TERRAFORM_ACTION}" = "apply" ]; then
+                              terraform apply -auto-approve -lock-timeout=15m -var-file="vars.dev.tfvars"
+                            else
+                              terraform plan -lock-timeout=15m -var-file="vars.dev.tfvars"
+                            fi
+                        '''
+                    }
+                }
+            }
+        }
+
         stage('API Gateway platform') {
             steps {
                 script {
