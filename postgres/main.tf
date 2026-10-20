@@ -98,20 +98,84 @@ resource "aws_security_group" "postgres" {
   vpc_id      = aws_vpc.postgres.id
   tags        = local.tags
 
-  ingress {
-    description = "Lambda outside a VPC has no fixed address; TLS is required"
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+resource "aws_security_group" "kite_lambda" {
+  name        = "${local.name}-kite-lambda"
+  description = "jw_kite in the existing Postgres VPC"
+  vpc_id      = aws_vpc.postgres.id
+  tags        = local.tags
+
+  egress {
+    description = "HTTPS for Kite, Secrets Manager, and S3 through the NAT gateway"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group_rule" "kite_lambda_to_postgres" {
+  type                     = "egress"
+  description              = "Postgres"
+  security_group_id        = aws_security_group.kite_lambda.id
+  source_security_group_id = aws_security_group.postgres.id
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+}
+
+resource "aws_security_group_rule" "postgres_from_kite_lambda" {
+  type                     = "ingress"
+  description              = "Postgres from jw_kite"
+  security_group_id        = aws_security_group.postgres.id
+  source_security_group_id = aws_security_group.kite_lambda.id
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+}
+
+resource "aws_eip" "kite_nat" {
+  domain = "vpc"
+  tags   = merge(local.tags, { Name = "${local.name}-nat" })
+}
+
+resource "aws_nat_gateway" "kite" {
+  allocation_id = aws_eip.kite_nat.id
+  subnet_id     = aws_subnet.public[0].id
+  tags          = merge(local.tags, { Name = "${local.name}-nat" })
+  depends_on    = [aws_internet_gateway.postgres]
+}
+
+resource "aws_subnet" "kite_private" {
+  count                   = 2
+  vpc_id                  = aws_vpc.postgres.id
+  cidr_block              = cidrsubnet(aws_vpc.postgres.cidr_block, 8, count.index + 11)
+  availability_zone       = "${var.aws_region}${count.index == 0 ? "a" : "b"}"
+  map_public_ip_on_launch = false
+  tags                    = merge(local.tags, { Name = "${local.name}-kite-private-${count.index + 1}" })
+}
+
+resource "aws_route_table" "kite_private" {
+  vpc_id = aws_vpc.postgres.id
+  tags   = merge(local.tags, { Name = "${local.name}-kite-private" })
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.kite.id
+  }
+}
+
+resource "aws_route_table_association" "kite_private" {
+  count          = 2
+  subnet_id      = aws_subnet.kite_private[count.index].id
+  route_table_id = aws_route_table.kite_private.id
 }
 
 resource "aws_db_parameter_group" "postgres" {
@@ -138,7 +202,7 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name       = aws_db_subnet_group.postgres.name
   vpc_security_group_ids     = [aws_security_group.postgres.id]
   parameter_group_name       = aws_db_parameter_group.postgres.name
-  publicly_accessible        = true
+  publicly_accessible        = false
   storage_encrypted          = true
   backup_retention_period    = 7
   deletion_protection        = true
