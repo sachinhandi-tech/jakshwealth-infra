@@ -80,7 +80,7 @@ resource "aws_route_table_association" "parallel" {
 
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb"
-  description = "kite-algo-setup load balancer. HTTP from CloudFront and the tester CIDR."
+  description = "Parallel scan load balancer. TCP 80 from the tester CIDR only."
   vpc_id      = aws_vpc.parallel.id
   tags        = merge(local.tags, { Name = "${local.name}-alb" })
 
@@ -91,14 +91,16 @@ resource "aws_security_group" "alb" {
     protocol    = "tcp"
     cidr_blocks = [var.allowed_cidr]
   }
+}
 
-  ingress {
-    description     = "HTTP from CloudFront"
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
-  }
+resource "aws_security_group_rule" "cloudfront_to_alb" {
+  type              = "ingress"
+  description       = "HTTP from CloudFront"
+  security_group_id = aws_security_group.alb.id
+  prefix_list_ids   = [data.aws_ec2_managed_prefix_list.cloudfront.id]
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
 }
 
 resource "aws_security_group" "parallel" {
