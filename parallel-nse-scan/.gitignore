@@ -2,4 +2,5 @@
 parallel-test.tfstate
 parallel-test.tfstate.*
 *.tfvars
+!backend.dev.tfvars
 crash.log
