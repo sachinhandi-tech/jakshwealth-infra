@@ -23,7 +23,7 @@ output "security_group_id" {
   value       = aws_security_group.parallel.id
 }
 
-output "state_path" {
-  description = "Local state file for this stack. Production remote state is not used."
-  value       = "parallel-test.tfstate"
+output "state_key" {
+  description = "S3 state key for this stack. Production state keys are not used."
+  value       = "dev/parallel-nse-scan/terraform.tfstate"
 }

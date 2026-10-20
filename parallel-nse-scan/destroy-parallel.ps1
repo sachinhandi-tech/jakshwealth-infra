@@ -1,24 +1,21 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-$versions = Get-Content -Raw -Path (Join-Path $PSScriptRoot "versions.tf")
-if ($versions -notmatch 'backend\s+"local"' -or $versions -notmatch 'parallel-test\.tfstate') {
-    throw "Refusing to destroy: this directory is not the local parallel-test state."
+$backend = Get-Content -Raw -Path (Join-Path $PSScriptRoot "backend.dev.tfvars")
+if ($backend -notmatch 'dev/parallel-nse-scan/terraform\.tfstate') {
+    throw "Refusing to destroy: backend key is not dev/parallel-nse-scan/terraform.tfstate."
 }
-if ($versions -match 'jakshwealth-infra-dev' -or $versions -match 'terraform-state-lock') {
-    throw "Refusing to destroy: production backend settings are present."
-}
-
-$statePath = Join-Path $PSScriptRoot "parallel-test.tfstate"
-if (-not (Test-Path $statePath)) {
-    throw "Refusing to destroy: parallel-test.tfstate is not in this directory."
+foreach ($token in @("dev/jakshwealth/terraform.tfstate", "dev/jakshwealth-postgres/terraform.tfstate")) {
+    if ($backend.Contains($token)) {
+        throw "Refusing to destroy: backend points at production state $token."
+    }
 }
 
-$state = Get-Content -Raw -Path $statePath
-$forbidden = @("jakshwealth-infra-dev", "jw_kite", "terraform-state-lock", "aws_lambda_function", "aws_db_instance", "aws_cloudfront_distribution")
-foreach ($token in $forbidden) {
+terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
+$state = terraform state pull
+foreach ($token in @("aws_lambda_function", "aws_db_instance", "aws_cloudfront_distribution", "jw_kite")) {
     if ($state.Contains($token)) {
-        throw "Refusing to destroy: state contains production marker '$token'."
+        throw "Refusing to destroy: state contains production marker $token."
     }
 }
 if ($state -notmatch "Parallel-Test") {

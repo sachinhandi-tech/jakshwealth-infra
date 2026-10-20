@@ -8,10 +8,8 @@ terraform {
     }
   }
 
-  # This root has its own local state. It never reads the production S3 backend.
-  backend "local" {
-    path = "parallel-test.tfstate"
-  }
+  # Separate state object. Jenkins passes backend.dev.tfvars. Production keys are not used.
+  backend "s3" {}
 }
 
 provider "aws" {
