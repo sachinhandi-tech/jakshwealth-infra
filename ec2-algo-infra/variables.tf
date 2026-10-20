@@ -76,3 +76,21 @@ variable "root_volume_gb" {
   description = "Encrypted gp3 root volume size in GiB."
   default     = 20
 }
+
+variable "artifact_bucket" {
+  type        = string
+  description = "Bucket that holds the API bundle, the shared Kite session, and the scanner cache."
+  default     = "jakshwealth-artifacts-dev-aps2"
+}
+
+variable "ui_bucket" {
+  type        = string
+  description = "UI bucket that receives kite-api-base.json after the API process starts."
+  default     = "jakshwealth-ui-dev-aps2"
+}
+
+variable "db_secret_id" {
+  type        = string
+  description = "Secrets Manager id with the platform database URL and Kite app settings."
+  default     = "jakshwealth/dev/postgres"
+}

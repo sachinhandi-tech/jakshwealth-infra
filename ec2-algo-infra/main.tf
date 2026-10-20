@@ -22,6 +22,10 @@ data "aws_ssm_parameter" "al2023" {
   name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 }
 
+data "aws_ec2_managed_prefix_list" "cloudfront" {
+  name = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
 data "aws_iam_policy_document" "assume_ec2" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -76,7 +80,7 @@ resource "aws_route_table_association" "parallel" {
 
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb"
-  description = "Parallel scan load balancer. TCP 80 from the tester CIDR only."
+  description = "kite-algo-setup load balancer. HTTP from CloudFront and the tester CIDR."
   vpc_id      = aws_vpc.parallel.id
   tags        = merge(local.tags, { Name = "${local.name}-alb" })
 
@@ -86,6 +90,14 @@ resource "aws_security_group" "alb" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = [var.allowed_cidr]
+  }
+
+  ingress {
+    description     = "HTTP from CloudFront"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
   }
 }
 
@@ -151,6 +163,39 @@ resource "aws_iam_role_policy_attachment" "parallel_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy" "parallel_api" {
+  name = "${local.name}-api"
+  role = aws_iam_role.parallel.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["s3:GetObject"]
+        Resource = [
+          "arn:aws:s3:::${var.artifact_bucket}/kite-algo-setup/*",
+          "arn:aws:s3:::${var.artifact_bucket}/kite-session/*",
+          "arn:aws:s3:::${var.artifact_bucket}/kite-scanner/*",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["s3:PutObject"]
+        Resource = [
+          "arn:aws:s3:::${var.artifact_bucket}/kite-session/*",
+          "arn:aws:s3:::${var.artifact_bucket}/kite-scanner/*",
+          "arn:aws:s3:::${var.ui_bucket}/kite-api-base.json",
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:*:secret:${var.db_secret_id}*"
+      },
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "parallel" {
   name = local.name
   role = aws_iam_role.parallel.name
@@ -164,6 +209,7 @@ resource "aws_lb" "parallel" {
   security_groups            = [aws_security_group.alb.id]
   subnets                    = [for subnet in aws_subnet.parallel : subnet.id]
   enable_deletion_protection = false
+  idle_timeout               = 120
   tags                       = local.tags
 }
 
@@ -212,9 +258,13 @@ resource "aws_launch_template" "parallel" {
   vpc_security_group_ids = [aws_security_group.parallel.id]
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh.tftpl", {
-    breakout_b64 = base64gzip(file("${path.module}/app/breakout.py"))
-    market_b64   = base64gzip(file("${path.module}/app/market.py"))
-    server_b64   = base64gzip(file("${path.module}/app/server.py"))
+    breakout_b64      = base64gzip(file("${path.module}/app/breakout.py"))
+    market_b64        = base64gzip(file("${path.module}/app/market.py"))
+    server_b64        = base64gzip(file("${path.module}/app/server.py"))
+    api_base_url      = "https://${aws_cloudfront_distribution.api.domain_name}"
+    ui_bucket         = var.ui_bucket
+    artifact_bucket   = var.artifact_bucket
+    db_secret_id      = var.db_secret_id
   }))
 
   metadata_options {
@@ -272,6 +322,14 @@ resource "aws_autoscaling_group" "parallel" {
   default_instance_warmup   = 420
   target_group_arns         = [aws_lb_target_group.parallel.arn]
 
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+      instance_warmup        = 420
+    }
+  }
+
   launch_template {
     id      = aws_launch_template.parallel.id
     version = "$Latest"
@@ -287,6 +345,48 @@ resource "aws_autoscaling_group" "parallel" {
   }
 
   depends_on = [aws_route.parallel_default, aws_lb_listener.parallel]
+}
+
+resource "aws_cloudfront_distribution" "api" {
+  enabled         = true
+  is_ipv6_enabled = false
+  comment         = "HTTPS entry for the kite-algo-setup API"
+  price_class     = "PriceClass_200"
+
+  origin {
+    domain_name = aws_lb.parallel.dns_name
+    origin_id   = "${local.name}-alb"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+      origin_read_timeout    = 60
+    }
+  }
+
+  default_cache_behavior {
+    allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods           = ["GET", "HEAD"]
+    target_origin_id         = "${local.name}-alb"
+    viewer_protocol_policy   = "redirect-to-https"
+    cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+    origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+    compress                 = true
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
+  tags = local.tags
 }
 
 resource "aws_autoscaling_policy" "cpu" {

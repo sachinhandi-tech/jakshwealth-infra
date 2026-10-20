@@ -18,6 +18,11 @@ output "security_group_id" {
   value       = aws_security_group.parallel.id
 }
 
+output "api_base_url" {
+  description = "HTTPS API entry. The desk reads this from kite-api-base.json after the instance publishes it."
+  value       = "https://${aws_cloudfront_distribution.api.domain_name}"
+}
+
 output "state_key" {
   description = "S3 state key for this stack. Production state keys are not used."
   value       = "dev/parallel-nse-scan/terraform.tfstate"
