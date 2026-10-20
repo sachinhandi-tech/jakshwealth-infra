@@ -91,7 +91,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "parallel" {
   name        = local.name
-  description = "Parallel NSE scan instances. TCP 8080 from the load balancer only."
+  description = "kite-algo-setup instances. TCP 8080 from the load balancer only."
   vpc_id      = aws_vpc.parallel.id
   tags        = local.tags
 
@@ -255,6 +255,13 @@ resource "aws_launch_template" "parallel" {
 }
 
 resource "aws_autoscaling_group" "parallel" {
+  lifecycle {
+    precondition {
+      condition     = var.asg_max_size >= var.asg_min_size
+      error_message = "asg_max_size must be at least asg_min_size."
+    }
+  }
+
   name                      = local.name
   vpc_zone_identifier       = [for subnet in aws_subnet.parallel : subnet.id]
   min_size                  = var.asg_min_size

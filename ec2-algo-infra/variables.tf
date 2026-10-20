@@ -42,6 +42,11 @@ variable "asg_min_size" {
   type        = number
   description = "Minimum scan instances. The group scales back to this when CPU is below the target."
   default     = 1
+
+  validation {
+    condition     = var.asg_min_size >= 1
+    error_message = "asg_min_size must be at least 1."
+  }
 }
 
 variable "asg_max_size" {
@@ -50,8 +55,8 @@ variable "asg_max_size" {
   default     = 3
 
   validation {
-    condition     = var.asg_max_size >= var.asg_min_size && var.asg_min_size >= 1
-    error_message = "asg_max_size must be at least asg_min_size, and asg_min_size must be at least 1."
+    condition     = var.asg_max_size >= 1
+    error_message = "asg_max_size must be at least 1."
   }
 }
 

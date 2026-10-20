@@ -173,7 +173,7 @@ pipeline {
             }
         }
 
-        stage('Parallel NSE scan EC2') {
+        stage('EC2 algo infra') {
             steps {
                 script {
                     jakshAws {
@@ -181,7 +181,7 @@ pipeline {
                             chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
                             REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
 
-                            cd parallel-nse-scan
+                            cd ec2-algo-infra
                             terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
                               terraform apply -auto-approve -lock-timeout=10m
