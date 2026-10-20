@@ -1,17 +1,17 @@
 #!/bin/bash
 set -euo pipefail
-exec > >(tee /var/log/parallel-nse-scan-bootstrap.log | logger -t parallel-nse-scan) 2>&1
+exec > >(tee /var/log/kite-algo-setup-bootstrap.log | logger -t kite-algo-setup) 2>&1
 
 dnf upgrade -y
 dnf install -y python3 python3-pip
 python3 -m pip install --no-cache-dir 'kiteconnect>=5.0.1,<6'
 
-if ! id nse-scan >/dev/null 2>&1; then
-  useradd --system --home-dir /opt/nse-scan --create-home --shell /sbin/nologin nse-scan
+if ! id kite-algo-setup >/dev/null 2>&1; then
+  useradd --system --home-dir /opt/kite-algo-setup --create-home --shell /sbin/nologin kite-algo-setup
 fi
-install -d -o root -g root -m 0755 /opt/nse-scan
-install -d -o nse-scan -g nse-scan -m 0750 /var/lib/nse-scan
-install -d -o root -g nse-scan -m 0750 /etc/jakshwealth-parallel
+install -d -o root -g root -m 0755 /opt/kite-algo-setup
+install -d -o kite-algo-setup -g kite-algo-setup -m 0750 /var/lib/kite-algo-setup
+install -d -o root -g kite-algo-setup -m 0750 /etc/kite-algo-setup
 
 python3 - <<'PY'
 import base64
@@ -22,38 +22,38 @@ files = {
     "market.py": "${market_b64}",
     "server.py": "${server_b64}",
 }
-root = Path("/opt/nse-scan")
+root = Path("/opt/kite-algo-setup")
 for name, payload in files.items():
     (root / name).write_bytes(gzip.decompress(base64.b64decode(payload)))
 PY
-chown -R root:root /opt/nse-scan
-chmod 0644 /opt/nse-scan/*.py
+chown -R root:root /opt/kite-algo-setup
+chmod 0644 /opt/kite-algo-setup/*.py
 
-cat > /etc/systemd/system/nse-scan.service <<'UNIT'
+cat > /etc/systemd/system/kite-algo-setup.service <<'UNIT'
 [Unit]
-Description=JakshWealth parallel NSE breakout scan
+Description=Kite algo setup scan
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=nse-scan
-Group=nse-scan
-WorkingDirectory=/opt/nse-scan
+User=kite-algo-setup
+Group=kite-algo-setup
+WorkingDirectory=/opt/kite-algo-setup
 Environment=PYTHONUNBUFFERED=1
-Environment=PYTHONPATH=/opt/nse-scan
-ExecStart=/usr/bin/python3 /opt/nse-scan/server.py
+Environment=PYTHONPATH=/opt/kite-algo-setup
+ExecStart=/usr/bin/python3 /opt/kite-algo-setup/server.py
 Restart=always
 RestartSec=2
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/nse-scan
+ReadWritePaths=/var/lib/kite-algo-setup
 
 [Install]
 WantedBy=multi-user.target
 UNIT
 
 systemctl daemon-reload
-systemctl enable --now nse-scan.service
+systemctl enable --now kite-algo-setup.service

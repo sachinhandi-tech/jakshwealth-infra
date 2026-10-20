@@ -1,16 +1,11 @@
-output "instance_id" {
-  description = "Parallel EC2 instance id."
-  value       = aws_instance.parallel.id
+output "load_balancer_dns" {
+  description = "Public DNS of the parallel scan load balancer."
+  value       = aws_lb.parallel.dns_name
 }
 
-output "public_ip" {
-  description = "Public IPv4 used by validate_parallel.py."
-  value       = aws_instance.parallel.public_ip
-}
-
-output "private_ip" {
-  description = "Private IPv4 inside the parallel VPC."
-  value       = aws_instance.parallel.private_ip
+output "autoscaling_group" {
+  description = "Auto Scaling group that keeps average CPU near the target."
+  value       = aws_autoscaling_group.parallel.name
 }
 
 output "vpc_id" {
@@ -19,7 +14,7 @@ output "vpc_id" {
 }
 
 output "security_group_id" {
-  description = "Security group that allows TCP 8080 only from allowed_cidr."
+  description = "Instance security group. Inbound TCP 8080 is allowed only from the load balancer."
   value       = aws_security_group.parallel.id
 }
 

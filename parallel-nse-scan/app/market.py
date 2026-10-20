@@ -11,8 +11,8 @@ from pathlib import Path
 
 HISTORY_DAYS = 120
 REQUEST_GAP_SECONDS = 0.35
-DATA_DIR = Path("/var/lib/nse-scan")
-CREDENTIAL_PATH = Path("/etc/jakshwealth-parallel/kite.env")
+DATA_DIR = Path("/var/lib/kite-algo-setup")
+CREDENTIAL_PATH = Path("/etc/kite-algo-setup/kite.env")
 
 _LOCK = threading.Lock()
 _THREAD: threading.Thread | None = None
@@ -34,7 +34,7 @@ def start_scan() -> tuple[int, dict]:
     if credentials is None:
         return 409, {
             "status": "fail",
-            "message": "Kite credentials are not on this instance. Place them in /etc/jakshwealth-parallel/kite.env and retry.",
+            "message": "Kite credentials are not on this instance. Place them in /etc/kite-algo-setup/kite.env and retry.",
         }
     with _LOCK:
         current = _read_job()
@@ -51,7 +51,7 @@ def start_scan() -> tuple[int, dict]:
             "message": "Scan started.",
         }
         _write_job(job)
-        thread = threading.Thread(target=_run, args=(job["job_id"], credentials), name="nse-scan", daemon=True)
+        thread = threading.Thread(target=_run, args=(job["job_id"], credentials), name="kite-algo-setup", daemon=True)
         global _THREAD
         _THREAD = thread
         thread.start()

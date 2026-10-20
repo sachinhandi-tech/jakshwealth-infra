@@ -1,10 +1,10 @@
 locals {
-  name = "jakshwealth-parallel-nse-scan"
+  name = "kite-algo-setup"
   tags = {
-    Name        = "jakshwealth-parallel-nse-scan"
+    Name        = "kite-algo-setup"
     Project     = "jakshwealth"
     Environment = "Parallel-Test"
-    ManagedBy   = "terraform-parallel-nse-scan"
+    ManagedBy   = "terraform-kite-algo-setup"
   }
   dns_resolver = cidrhost(var.vpc_cidr, 2)
 }
@@ -45,11 +45,16 @@ resource "aws_internet_gateway" "parallel" {
 }
 
 resource "aws_subnet" "parallel" {
+  for_each = {
+    a = 0
+    b = 1
+  }
+
   vpc_id                  = aws_vpc.parallel.id
-  cidr_block              = cidrsubnet(var.vpc_cidr, 8, 1)
-  availability_zone       = data.aws_availability_zones.available.names[0]
+  cidr_block              = cidrsubnet(var.vpc_cidr, 8, each.value + 1)
+  availability_zone       = data.aws_availability_zones.available.names[each.value]
   map_public_ip_on_launch = true
-  tags                    = merge(local.tags, { Name = "${local.name}-subnet" })
+  tags                    = merge(local.tags, { Name = "${local.name}-subnet-${each.key}" })
 }
 
 resource "aws_route_table" "parallel" {
@@ -64,13 +69,29 @@ resource "aws_route" "parallel_default" {
 }
 
 resource "aws_route_table_association" "parallel" {
-  subnet_id      = aws_subnet.parallel.id
+  for_each       = aws_subnet.parallel
+  subnet_id      = each.value.id
   route_table_id = aws_route_table.parallel.id
+}
+
+resource "aws_security_group" "alb" {
+  name        = "${local.name}-alb"
+  description = "Parallel scan load balancer. TCP 80 from the tester CIDR only."
+  vpc_id      = aws_vpc.parallel.id
+  tags        = merge(local.tags, { Name = "${local.name}-alb" })
+
+  ingress {
+    description = "HTTP from the tester"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_cidr]
+  }
 }
 
 resource "aws_security_group" "parallel" {
   name        = local.name
-  description = "Parallel NSE scan. TCP 8080 from the tester CIDR only."
+  description = "Parallel NSE scan instances. TCP 8080 from the load balancer only."
   vpc_id      = aws_vpc.parallel.id
   tags        = local.tags
 
@@ -99,14 +120,24 @@ resource "aws_security_group" "parallel" {
   }
 }
 
+resource "aws_security_group_rule" "alb_to_instances" {
+  type                     = "egress"
+  description              = "Forward to scan instances"
+  security_group_id        = aws_security_group.alb.id
+  source_security_group_id = aws_security_group.parallel.id
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+}
+
 resource "aws_security_group_rule" "scan_ingress" {
-  type              = "ingress"
-  description       = "Scan service from the tester"
-  security_group_id = aws_security_group.parallel.id
-  from_port         = 8080
-  to_port           = 8080
-  protocol          = "tcp"
-  cidr_blocks       = [var.allowed_cidr]
+  type                     = "ingress"
+  description              = "Scan service from the load balancer"
+  security_group_id        = aws_security_group.parallel.id
+  source_security_group_id = aws_security_group.alb.id
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
 }
 
 resource "aws_iam_role" "parallel" {
@@ -126,19 +157,65 @@ resource "aws_iam_instance_profile" "parallel" {
   tags = local.tags
 }
 
-resource "aws_instance" "parallel" {
-  ami                         = data.aws_ssm_parameter.al2023.value
-  instance_type               = var.instance_type
-  subnet_id                   = aws_subnet.parallel.id
-  vpc_security_group_ids      = [aws_security_group.parallel.id]
-  iam_instance_profile        = aws_iam_instance_profile.parallel.name
-  associate_public_ip_address = true
-  user_data = templatefile("${path.module}/user_data.sh.tftpl", {
+resource "aws_lb" "parallel" {
+  name                       = local.name
+  load_balancer_type         = "application"
+  internal                   = false
+  security_groups            = [aws_security_group.alb.id]
+  subnets                    = [for subnet in aws_subnet.parallel : subnet.id]
+  enable_deletion_protection = false
+  tags                       = local.tags
+}
+
+resource "aws_lb_target_group" "parallel" {
+  name                 = local.name
+  port                 = 8080
+  protocol             = "HTTP"
+  vpc_id               = aws_vpc.parallel.id
+  target_type          = "instance"
+  deregistration_delay = 30
+
+  health_check {
+    enabled             = true
+    path                = "/health"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+
+  tags = local.tags
+}
+
+resource "aws_lb_listener" "parallel" {
+  load_balancer_arn = aws_lb.parallel.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.parallel.arn
+  }
+}
+
+resource "aws_launch_template" "parallel" {
+  name          = local.name
+  image_id      = data.aws_ssm_parameter.al2023.value
+  instance_type = var.instance_type
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.parallel.name
+  }
+
+  vpc_security_group_ids = [aws_security_group.parallel.id]
+
+  user_data = base64encode(templatefile("${path.module}/user_data.sh.tftpl", {
     breakout_b64 = base64gzip(file("${path.module}/app/breakout.py"))
     market_b64   = base64gzip(file("${path.module}/app/market.py"))
     server_b64   = base64gzip(file("${path.module}/app/server.py"))
-  })
-  user_data_replace_on_change = true
+  }))
 
   metadata_options {
     http_endpoint               = "enabled"
@@ -146,18 +223,75 @@ resource "aws_instance" "parallel" {
     http_put_response_hop_limit = 1
   }
 
-  root_block_device {
-    volume_type           = "gp3"
-    volume_size           = var.root_volume_gb
-    encrypted             = true
-    delete_on_termination = true
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_type           = "gp3"
+      volume_size           = var.root_volume_gb
+      encrypted             = true
+      delete_on_termination = true
+    }
+  }
+
+  monitoring {
+    enabled = true
   }
 
   credit_specification {
     cpu_credits = "standard"
   }
 
-  tags = local.tags
+  tag_specifications {
+    resource_type = "instance"
+    tags          = local.tags
+  }
 
-  depends_on = [aws_route.parallel_default]
+  tag_specifications {
+    resource_type = "volume"
+    tags          = local.tags
+  }
+
+  tags = local.tags
+}
+
+resource "aws_autoscaling_group" "parallel" {
+  name                      = local.name
+  vpc_zone_identifier       = [for subnet in aws_subnet.parallel : subnet.id]
+  min_size                  = var.asg_min_size
+  max_size                  = var.asg_max_size
+  desired_capacity          = var.asg_min_size
+  health_check_type         = "ELB"
+  health_check_grace_period = 420
+  default_instance_warmup   = 420
+  target_group_arns         = [aws_lb_target_group.parallel.arn]
+
+  launch_template {
+    id      = aws_launch_template.parallel.id
+    version = "$Latest"
+  }
+
+  dynamic "tag" {
+    for_each = local.tags
+    content {
+      key                 = tag.key
+      value               = tag.value
+      propagate_at_launch = true
+    }
+  }
+
+  depends_on = [aws_route.parallel_default, aws_lb_listener.parallel]
+}
+
+resource "aws_autoscaling_policy" "cpu" {
+  name                   = "${local.name}-cpu"
+  autoscaling_group_name = aws_autoscaling_group.parallel.name
+  policy_type            = "TargetTrackingScaling"
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value     = var.cpu_target_percent
+    disable_scale_in = false
+  }
 }

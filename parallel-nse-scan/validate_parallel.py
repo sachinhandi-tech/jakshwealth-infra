@@ -1,4 +1,4 @@
-"""Find the parallel EC2 instance by tag and report PASS or FAIL."""
+"""Find the parallel scan load balancer by name and report PASS or FAIL."""
 
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
-NAME = "jakshwealth-parallel-nse-scan"
+NAME = "kite-algo-setup"
 ENVIRONMENT = "Parallel-Test"
-PORT = 8080
+PORT = 80
 
 
 def main() -> int:
@@ -28,41 +28,28 @@ def main() -> int:
 
     try:
         session = boto3.Session(profile_name=args.profile, region_name=args.region)
-        ec2 = session.client("ec2", config=Config(retries={"max_attempts": 3, "mode": "standard"}))
-        response = ec2.describe_instances(Filters=[
-            {"Name": "tag:Environment", "Values": [ENVIRONMENT]},
-            {"Name": "tag:Name", "Values": [NAME]},
-            {"Name": "instance-state-name", "Values": ["running"]},
-        ])
+        elbv2 = session.client("elbv2", config=Config(retries={"max_attempts": 3, "mode": "standard"}))
+        response = elbv2.describe_load_balancers(Names=[NAME])
     except (BotoCoreError, ClientError) as exc:
-        return _fail(f"Could not describe instances: {exc.__class__.__name__}")
+        return _fail(f"Could not describe the load balancer: {exc.__class__.__name__}")
 
-    instances = [
-        item
-        for reservation in response.get("Reservations", [])
-        for item in reservation.get("Instances", [])
-    ]
-    if len(instances) != 1:
-        return _fail(f"Expected 1 running {NAME} instance and found {len(instances)}.")
+    balancers = response.get("LoadBalancers", [])
+    if len(balancers) != 1:
+        return _fail(f"Expected 1 load balancer named {NAME} and found {len(balancers)}.")
 
-    instance = instances[0]
-    public_ip = instance.get("PublicIpAddress")
-    private_ip = instance.get("PrivateIpAddress")
-    instance_id = instance.get("InstanceId")
-    print(f"INSTANCE {instance_id}")
-    print(f"PUBLIC_IP {public_ip}")
-    print(f"PRIVATE_IP {private_ip}")
-    if not public_ip:
-        return _fail("The instance has no public IP.")
+    dns_name = balancers[0].get("DNSName")
+    print(f"LOAD_BALANCER {dns_name}")
+    if not dns_name:
+        return _fail("The load balancer has no DNS name.")
 
-    health = _retry(public_ip, "/health", "GET", args.attempts, args.interval_seconds)
+    health = _retry(dns_name, "/health", "GET", args.attempts, args.interval_seconds)
     if health is None:
         return _fail("Health check did not return HTTP 200.")
     print(f"HEALTH {health['status_code']} {health['body'].get('status')}")
     if health["status_code"] != 200 or health["body"].get("status") != "ok" or health["body"].get("environment") != ENVIRONMENT:
         return _fail("Health payload did not match.")
 
-    logic = _request(public_ip, "/logic/self-test", "POST")
+    logic = _request(dns_name, "/logic/self-test", "POST")
     if logic is None:
         return _fail("Self-test request failed.")
     print(

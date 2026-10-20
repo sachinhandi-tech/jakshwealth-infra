@@ -18,7 +18,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0]
         if path == "/health":
-            self._send(200, {"status": "ok", "service": "nse-scan", "environment": "Parallel-Test"})
+            self._send(200, {"status": "ok", "service": "kite-algo-setup", "environment": "Parallel-Test"})
             return
         if path.startswith("/scans/"):
             code, body = job_status(path.removeprefix("/scans/"))
@@ -73,7 +73,7 @@ def _self_test() -> dict:
 def main() -> None:
     recover_interrupted_scan()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
-    print(f"nse-scan listening on {HOST}:{PORT}", flush=True)
+    print(f"kite-algo-setup listening on {HOST}:{PORT}", flush=True)
     server.serve_forever()
 
 
