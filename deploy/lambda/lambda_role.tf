@@ -42,7 +42,9 @@ resource "aws_iam_policy" "artifacts_s3_access" {
       Action = [
         "s3:GetObject",
         "s3:GetObjectVersion",
-        "s3:ListBucket"
+        "s3:ListBucket",
+        "s3:PutObject",
+        "s3:DeleteObject"
       ]
       Resource = [
         "arn:aws:s3:::jakshwealth-artifacts-${var.environment}-${lookup({ "ap-south-2" = "aps2", "us-east-1" = "use1" }, data.aws_region.current.name, replace(data.aws_region.current.name, "-", ""))}",
