@@ -29,7 +29,8 @@ variable "instance_type" {
 
 variable "allowed_cidr" {
   type        = string
-  description = "IPv4 CIDR allowed to reach the scan service on TCP 8080. Pass your public address as x.x.x.x/32."
+  description = "IPv4 CIDR allowed to reach the scan service on TCP 8080."
+  default     = "117.232.181.186/32"
 
   validation {
     condition     = can(cidrnetmask(var.allowed_cidr)) && var.allowed_cidr != "0.0.0.0/0"
