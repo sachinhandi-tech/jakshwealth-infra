@@ -137,10 +137,22 @@ cat > /usr/local/bin/kite-algo-setup-sync <<'SYNC'
 set -euo pipefail
 DEST=/var/lib/kite-algo-setup/api.zip
 TMP=/var/lib/kite-algo-setup/api.zip.tmp
-if ! aws s3 cp "s3://${artifact_bucket}/kite-algo-setup/api.zip" "$${TMP}"; then
-  rm -f "$${TMP}"
-  exit 0
-fi
+python3 - "$${TMP}" "${artifact_bucket}" <<'PY'
+import sys
+import boto3
+from pathlib import Path
+
+tmp_file = sys.argv[1]
+bucket = sys.argv[2]
+
+try:
+    s3 = boto3.client('s3')
+    s3.download_file(bucket, 'kite-algo-setup/api.zip', tmp_file)
+except Exception as e:
+    print(f"Failed to download: {e}", file=sys.stderr)
+    Path(tmp_file).unlink(missing_ok=True)
+    sys.exit(0)
+PY
 if [ -f "$${DEST}" ] && cmp -s "$${TMP}" "$${DEST}"; then
   rm -f "$${TMP}"
   /usr/local/bin/kite-algo-setup-publish || true
