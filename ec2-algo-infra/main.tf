@@ -259,7 +259,8 @@ resource "aws_launch_template" "parallel" {
 
   vpc_security_group_ids = [aws_security_group.parallel.id]
 
-  user_data = base64encode(templatefile("${path.module}/user_data.sh.tftpl", {
+  # CHANGE: Swapped base64encode for base64gzip to compress the whole payload
+  user_data = base64gzip(templatefile("${path.module}/user_data.sh.tftpl", {
     breakout_b64      = base64gzip(file("${path.module}/app/breakout.py"))
     market_b64        = base64gzip(file("${path.module}/app/market.py"))
     server_b64        = base64gzip(file("${path.module}/app/server.py"))
@@ -305,6 +306,7 @@ resource "aws_launch_template" "parallel" {
 
   tags = local.tags
 }
+
 
 resource "aws_autoscaling_group" "parallel" {
   lifecycle {
