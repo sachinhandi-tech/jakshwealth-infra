@@ -355,7 +355,7 @@ resource "aws_cloudfront_response_headers_policy" "api_cors" {
   name = "${local.name}-api-cors"
 
   cors_config {
-    access_control_allow_credentials = true
+    access_control_allow_credentials = false
     access_control_max_age_sec       = 3600
     origin_override                  = true
 
