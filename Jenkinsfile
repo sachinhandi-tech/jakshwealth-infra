@@ -1,5 +1,4 @@
 #!/usr/bin/groovy
-
 def props
 
 /** Use Jenkins AWS credential when aws_credentials_id is set; else ~/.aws/credentials profile. */
@@ -40,25 +39,21 @@ EOF
 
 pipeline {
     agent any
-
     parameters {
         choice(
             name: 'TERRAFORM_ACTION',
-            choices: ['apply', 'plan', 'destroy'],
+            choices: ['plan', 'apply', 'destroy'],
             description: 'Terraform action for JakshWealth platform infra (UI hosting + EC2).'
         )
     }
-
     environment {
         TF_PLUGIN_CACHE_DIR = "${env.HOME}/.terraform.d/plugin-cache"
     }
-
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         timestamps()
         disableConcurrentBuilds()
     }
-
     stages {
         stage('Set environment') {
             steps {
@@ -71,7 +66,7 @@ pipeline {
                 }
             }
         }
-
+        
         stage('Free disk for Terraform providers') {
             steps {
                 sh '''
@@ -81,6 +76,7 @@ pipeline {
                     mkdir -p "${TF_PLUGIN_CACHE_DIR}"
                     echo "Disk after removing workspace provider copies:"
                     df -h "${WORKSPACE}"
+                    
                     avail_kb=$(df -Pk "${WORKSPACE}" | awk 'NR==2 {print $4}')
                     if [ "${avail_kb}" -lt 800000 ]; then
                         echo "Less than 800MB is free. Old Jenkins workspaces are still filling the disk."
@@ -90,7 +86,7 @@ pipeline {
                 '''
             }
         }
-
+        
         stage('Verify AWS credentials') {
             steps {
                 script {
@@ -103,11 +99,9 @@ pipeline {
                 }
             }
         }
-
+        
         stage('Bootstrap foundation buckets') {
-            when {
-                expression { params.TERRAFORM_ACTION == 'apply' }
-            }
+            when { expression { params.TERRAFORM_ACTION == 'apply' } }
             steps {
                 script {
                     jakshAws {
@@ -116,15 +110,13 @@ pipeline {
                             terraform init -input=false
                             chmod +x import-existing.sh
                             ./import-existing.sh "${DEPLOY_ENV}" terraform-state-lock
-                            terraform apply -auto-approve \
-                              -var-file="vars.dev.tfvars" \
-                              -var="deploy_env=${DEPLOY_ENV}"
+                            terraform apply -auto-approve -var-file="vars.dev.tfvars" -var="deploy_env=${DEPLOY_ENV}"
                         '''
                     }
                 }
             }
         }
-
+        
         stage('UI hosting (S3 + CloudFront)') {
             steps {
                 catchError(buildResult: null, stageResult: 'FAILURE') {
@@ -133,17 +125,16 @@ pipeline {
                             sh '''
                                 chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
                                 REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
-
+                                
                                 cd s3-cloudfront-ui/module
                                 terraform init -input=false -reconfigure -backend-config="config/dev-backend.tfvars"
+                                
                                 if [ "${TERRAFORM_ACTION}" = "apply" ]; then
-                                  terraform apply -auto-approve -lock-timeout=10m \
-                                    -var "deploy_env=${DEPLOY_ENV}" \
-                                    -var-file="s3_config_vars/s3.dev.tfvars"
+                                    terraform apply -auto-approve -lock-timeout=10m -var "deploy_env=${DEPLOY_ENV}" -var-file="s3_config_vars/s3.dev.tfvars"
+                                elif [ "${TERRAFORM_ACTION}" = "destroy" ]; then
+                                    terraform destroy -auto-approve -lock-timeout=10m -var "deploy_env=${DEPLOY_ENV}" -var-file="s3_config_vars/s3.dev.tfvars"
                                 else
-                                  terraform plan -lock-timeout=10m \
-                                    -var "deploy_env=${DEPLOY_ENV}" \
-                                    -var-file="s3_config_vars/s3.dev.tfvars"
+                                    terraform plan -lock-timeout=10m -var "deploy_env=${DEPLOY_ENV}" -var-file="s3_config_vars/s3.dev.tfvars"
                                 fi
                             '''
                         }
@@ -151,7 +142,7 @@ pipeline {
                 }
             }
         }
-
+        
         stage('Subscriber Postgres') {
             steps {
                 script {
@@ -159,20 +150,23 @@ pipeline {
                         sh '''
                             chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
                             REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
-
+                            
                             cd postgres
                             terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
+                            
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
-                              terraform apply -auto-approve -lock-timeout=15m -var-file="vars.dev.tfvars"
+                                terraform apply -auto-approve -lock-timeout=15m -var-file="vars.dev.tfvars"
+                            elif [ "${TERRAFORM_ACTION}" = "destroy" ]; then
+                                terraform destroy -auto-approve -lock-timeout=15m -var-file="vars.dev.tfvars"
                             else
-                              terraform plan -lock-timeout=15m -var-file="vars.dev.tfvars"
+                                terraform plan -lock-timeout=15m -var-file="vars.dev.tfvars"
                             fi
                         '''
                     }
                 }
             }
         }
-
+        
         stage('EC2 algo infra') {
             steps {
                 script {
@@ -180,42 +174,37 @@ pipeline {
                         sh '''
                             chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
                             REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
-
+                            
                             cd ec2-algo-infra
                             terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
+                            
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
-                              terraform apply -auto-approve -lock-timeout=10m
-                              
-                              # Force rolling update of ASG to apply new Nginx config
-                              ASG_NAME=$(terraform output -raw autoscaling_group_name 2>/dev/null || echo "")
-                              if [ -n "${ASG_NAME}" ] && [ "${ASG_NAME}" != "None" ]; then
-                                echo "Triggering rolling update for ASG: ${ASG_NAME}"
-                                aws autoscaling start-instance-refresh \
-                                  --auto-scaling-group-name "${ASG_NAME}" \
-                                  --region "${AWS_REGION}" || echo "Rolling update may have already been triggered"
-                                echo "Waiting for rolling update to complete..."
-                                aws autoscaling describe-instance-refreshes \
-                                  --auto-scaling-group-name "${ASG_NAME}" \
-                                  --region "${AWS_REGION}" \
-                                  --query "InstanceRefreshes[0].Status" \
-                                  --output text || echo "Could not check refresh status"
-                              fi
-                              
-                              # Invalidate CloudFront cache after EC2 infra update
-                              CF_ID=$(terraform output -raw api_cloudfront_id 2>/dev/null || echo "")
-                              if [ -n "${CF_ID}" ] && [ "${CF_ID}" != "None" ]; then
-                                echo "Invalidating CloudFront distribution: ${CF_ID}"
-                                aws cloudfront create-invalidation \
-                                  --distribution-id "${CF_ID}" \
-                                  --paths "/*" \
-                                  --query "Invalidation.Id" \
-                                  --output text
-                                echo "CloudFront invalidation completed"
-                              else
-                                echo "No CloudFront distribution ID found, skipping invalidation"
-                              fi
+                                terraform apply -auto-approve -lock-timeout=10m
+                                
+                                # Force rolling update of ASG to apply new Nginx config
+                                ASG_NAME=$(terraform output -raw autoscaling_group_name 2>/dev/null || echo "")
+                                if [ -n "${ASG_NAME}" ] && [ "${ASG_NAME}" != "None" ]; then
+                                    echo "Triggering rolling update for ASG: ${ASG_NAME}"
+                                    aws autoscaling start-instance-refresh --auto-scaling-group-name "${ASG_NAME}" --region "${AWS_REGION}" || echo "Rolling update may have already been triggered"
+                                    
+                                    echo "Waiting for rolling update to complete..."
+                                    aws autoscaling describe-instance-refreshes --auto-scaling-group-name "${ASG_NAME}" --region "${AWS_REGION}" --query "InstanceRefreshes[0].Status" --output text || echo "Could not check refresh status"
+                                fi
+                                
+                                # Invalidate CloudFront cache after EC2 infra update
+                                CF_ID=$(terraform output -raw api_cloudfront_id 2>/dev/null || echo "")
+                                if [ -n "${CF_ID}" ] && [ "${CF_ID}" != "None" ]; then
+                                    echo "Invalidating CloudFront distribution: ${CF_ID}"
+                                    aws cloudfront create-invalidation --distribution-id "${CF_ID}" --paths "/*" --query "Invalidation.Id" --output text
+                                    echo "CloudFront invalidation completed"
+                                else
+                                    echo "No CloudFront distribution ID found, skipping invalidation"
+                                fi
+                                
+                            elif [ "${TERRAFORM_ACTION}" = "destroy" ]; then
+                                terraform destroy -auto-approve -lock-timeout=10m
                             else
-                              terraform plan -lock-timeout=10m
+                                terraform plan -lock-timeout=10m
                             fi
                         '''
                     }
