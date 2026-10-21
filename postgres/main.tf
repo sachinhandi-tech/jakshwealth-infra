@@ -213,8 +213,8 @@ resource "aws_db_instance" "postgres" {
   tags                       = local.tags
 }
 
-resource "aws_secretsmanager_secret" "postgres" {
-  name = "jakshwealth/${var.environment}/postgres"
+resource "aws_secretsmanager_secret" "jakshwealth" {
+  name = "jakshwealth/${var.environment}/jakshwealth"
   tags = local.tags
 }
 
