@@ -218,4 +218,3 @@ pipeline {
                                 else
                                     echo "No CloudFront distribution ID found, skipping invalidation"
                                 fi
-                                
