@@ -8,16 +8,11 @@ This repo is a trimmed fork of `ccd-infrastructure` — CCD calc pipelines, EC2 
 
 ```
 jakshwealth-infra/
-├── deploy/                          # Reusable modules (consumed by jakshwealth-api)
-│   ├── lambda/
-│   ├── api-gateway-resource/
-│   ├── api-gateway-integration-jw/
-│   └── api-lambda-permission/
-├── code-infra/
-│   ├── api-gateway/                 # jw-api REST API shell + TOKEN authorizer wiring
-│   └── module/main/                 # Apply API Gateway platform per environment
+├── bootstrap/                        # Foundation S3 buckets for Terraform state and artifacts
 ├── s3-cloudfront-ui/               # jakshwealth-ui S3 + CloudFront + Route53
-└── Jenkinsfile                      # Platform infra (UI + API GW shell)
+├── ec2-algo-infra/                 # EC2 infrastructure for kite-algo-setup (ALB, ASG, CloudFront)
+├── postgres/                       # RDS PostgreSQL for subscriber data
+└── Jenkinsfile                      # Platform infra (UI + EC2)
 ```
 
 ## What each app uses
@@ -25,14 +20,16 @@ jakshwealth-infra/
 | App | Infra from this repo |
 |-----|----------------------|
 | **jakshwealth-ui** | `s3-cloudfront-ui/module` → S3 bucket, CloudFront, DNS |
-| **jakshwealth-api** | `deploy/*` modules + `code-infra/module/main` (API GW + authorizer) |
+| **jakshwealth-api** | `ec2-algo-infra` → EC2, ALB, CloudFront for API |
 
 ## Deploy order (per environment)
 
 1. **Platform** — run this repo's Jenkinsfile (or Terraform manually):
+   - `bootstrap/terraform` — Foundation S3 buckets
    - `s3-cloudfront-ui/module` — UI hosting
-   - `code-infra/module/main` — `jw-api` REST API + authorizer IAM
-2. **API app** — run **jakshwealth-api** Jenkinsfile (Lambdas, integrations, stage)
+   - `postgres` — RDS PostgreSQL
+   - `ec2-algo-infra` — EC2 infrastructure (ALB, ASG, CloudFront)
+2. **API app** — run **jakshwealth-api** Jenkinsfile (publish EC2 API bundle to S3)
 3. **UI app** — run **jakshwealth-ui** Jenkinsfile (build → S3 sync → CF invalidation)
 
 ## Personal AWS (fresh account, single environment)
@@ -41,19 +38,17 @@ jakshwealth-infra/
 
 **Setup:** [docs/AWS_PERSONAL_SETUP.md](docs/AWS_PERSONAL_SETUP.md) — IAM user + `aws configure --profile jakshwealth`
 
-- VPC + subnets tagged for Lambda (see jakshwealth-api `static_data.tf`)
+- VPC + subnets for EC2 (managed by ec2-algo-infra)
 - Route53 hosted zone + ACM certificates
 - S3 buckets: `jakshwealth-artifacts-{env}`, `jakshwealth-infra-{env}` (state), `jakshwealth-ui-{env}`
 - Secrets Manager: `{env}/jakshwealth/config`
-- IAM policy: `jakshwealth-lambda-secrets` (Secrets Manager read for Lambdas)
+- IAM role: EC2 instance profile with Secrets Manager access
 
-## Local module path for jakshwealth-api
+## EC2 Deployment
 
-From a sibling checkout:
+The EC2 instances in `ec2-algo-infra` automatically:
+- Pull API bundles from S3 every 60 seconds
+- Install and restart services when new bundles are detected
+- Publish API base URL to S3 for UI discovery
 
-```
-../jakshwealth-infra/deploy/lambda
-../jakshwealth-infra/deploy/api-gateway-integration-jw
-```
-
-See `jakshwealth-api/automation_codes/module_sources/sources.json`.
+See `ec2-algo-infra/user_data.sh.tftpl` for bootstrap configuration.

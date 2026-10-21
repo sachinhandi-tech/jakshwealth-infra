@@ -45,7 +45,7 @@ pipeline {
         choice(
             name: 'TERRAFORM_ACTION',
             choices: ['apply', 'plan'],
-            description: 'Terraform action for JakshWealth platform infra (UI hosting + API Gateway shell).'
+            description: 'Terraform action for JakshWealth platform infra (UI hosting + EC2).'
         )
     }
 
@@ -187,27 +187,6 @@ pipeline {
                               terraform apply -auto-approve -lock-timeout=10m
                             else
                               terraform plan -lock-timeout=10m
-                            fi
-                        '''
-                    }
-                }
-            }
-        }
-
-        stage('API Gateway platform') {
-            steps {
-                script {
-                    jakshAws {
-                        sh '''
-                            chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
-                            REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
-
-                            cd code-infra/module/main
-                            terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
-                            if [ "${TERRAFORM_ACTION}" = "apply" ]; then
-                              terraform apply -auto-approve -lock-timeout=10m -var-file="vars.dev.tfvars"
-                            else
-                              terraform plan -lock-timeout=10m -var-file="vars.dev.tfvars"
                             fi
                         '''
                     }
