@@ -214,7 +214,7 @@ resource "aws_db_instance" "postgres" {
 }
 
 resource "aws_secretsmanager_secret" "postgres" {
-  name = "jakshwealth/${var.environment}/postgres"
+  name = "jakshwealth/${var.environment}/postgres_new"
   tags = local.tags
 }
 
