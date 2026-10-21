@@ -351,6 +351,32 @@ resource "aws_autoscaling_group" "parallel" {
   depends_on = [aws_route.parallel_default, aws_lb_listener.parallel]
 }
 
+resource "aws_cloudfront_response_headers_policy" "api_cors" {
+  name = "${local.name}-api-cors"
+
+  cors_config {
+    access_control_allow_credentials = true
+    access_control_max_age_sec       = 3600
+    origin_override                  = true
+
+    access_control_allow_headers {
+      items = ["*"]
+    }
+
+    access_control_allow_methods {
+      items = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    }
+
+    access_control_allow_origins {
+      items = ["*"]
+    }
+
+    access_control_expose_headers {
+      items = ["*"]
+    }
+  }
+}
+
 resource "aws_cloudfront_distribution" "api" {
   enabled         = true
   is_ipv6_enabled = false
@@ -371,14 +397,15 @@ resource "aws_cloudfront_distribution" "api" {
   }
 
   default_cache_behavior {
-    allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    allowed_methods                = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     # Change [] to ["GET", "HEAD"] to pass AWS validation requirements
-    cached_methods           = ["GET", "HEAD"]
-    target_origin_id         = "${local.name}-alb"
-    viewer_protocol_policy   = "redirect-to-https"
-    cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"  # CachingDisabled
-    origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
-    compress                 = true
+    cached_methods                 = ["GET", "HEAD"]
+    target_origin_id               = "${local.name}-alb"
+    viewer_protocol_policy         = "redirect-to-https"
+    cache_policy_id                = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"  # CachingDisabled
+    origin_request_policy_id       = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+    response_headers_policy_id     = aws_cloudfront_response_headers_policy.api_cors.id
+    compress                       = true
   }
 
   restrictions {
