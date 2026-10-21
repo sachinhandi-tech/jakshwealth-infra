@@ -217,7 +217,7 @@ resource "aws_lb" "parallel" {
 
 resource "aws_lb_target_group" "parallel" {
   name                 = local.name
-  port                 = 8080
+  port                 = 8090
   protocol             = "HTTP"
   vpc_id               = aws_vpc.parallel.id
   target_type          = "instance"
@@ -225,7 +225,7 @@ resource "aws_lb_target_group" "parallel" {
 
   health_check {
     enabled             = true
-    path                = "/api/kite/health"
+    path                = "/health"
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
