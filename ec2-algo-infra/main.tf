@@ -139,8 +139,8 @@ resource "aws_security_group_rule" "alb_to_instances" {
   description              = "Forward to scan instances"
   security_group_id        = aws_security_group.alb.id
   source_security_group_id = aws_security_group.parallel.id
-  from_port                = 8080
-  to_port                  = 8080
+  from_port                = 8090
+  to_port                  = 8090
   protocol                 = "tcp"
 }
 
@@ -149,8 +149,8 @@ resource "aws_security_group_rule" "scan_ingress" {
   description              = "Scan service from the load balancer"
   security_group_id        = aws_security_group.parallel.id
   source_security_group_id = aws_security_group.alb.id
-  from_port                = 8080
-  to_port                  = 8080
+  from_port                = 8090
+  to_port                  = 8090
   protocol                 = "tcp"
 }
 
