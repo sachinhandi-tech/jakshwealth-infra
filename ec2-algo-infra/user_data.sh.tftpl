@@ -105,7 +105,7 @@ fi
 rm -rf "$${ROOT}"
 mkdir -p "$${ROOT}"
 unzip -qo "$${ARCHIVE}" -d "$${ROOT}"
-python3 -m pip install --no-cache-dir -r "$${ROOT}/ec2_host/requirements.txt"
+python3 -m pip install --no-cache-dir --ignore-installed -r "$${ROOT}/ec2_host/requirements.txt"
 chown -R kite-algo-setup:kite-algo-setup /var/lib/kite-algo-setup
 systemctl enable kite-desk.service kite-app-config.service kite-secure-data.service
 systemctl restart kite-desk.service kite-app-config.service kite-secure-data.service
