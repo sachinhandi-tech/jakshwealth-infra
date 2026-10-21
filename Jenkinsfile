@@ -44,7 +44,7 @@ pipeline {
     parameters {
         choice(
             name: 'TERRAFORM_ACTION',
-            choices: ['apply', 'plan'],
+            choices: ['apply', 'plan', 'destroy'],
             description: 'Terraform action for JakshWealth platform infra (UI hosting + EC2).'
         )
     }
