@@ -110,9 +110,7 @@ pipeline {
                             terraform init -input=false
                             chmod +x import-existing.sh
                             ./import-existing.sh "${DEPLOY_ENV}" terraform-state-lock
-                            terraform apply -auto-approve \
-                                -var-file="vars.dev.tfvars" \
-                                -var="deploy_env=${DEPLOY_ENV}"
+                            terraform apply -auto-approve -var-file="vars.dev.tfvars" -var="deploy_env=${DEPLOY_ENV}"
                         '''
                     }
                 }
@@ -132,17 +130,11 @@ pipeline {
                                 terraform init -input=false -reconfigure -backend-config="config/dev-backend.tfvars"
                                 
                                 if [ "${TERRAFORM_ACTION}" = "apply" ]; then
-                                    terraform apply -auto-approve -lock-timeout=10m \
-                                        -var "deploy_env=${DEPLOY_ENV}" \
-                                        -var-file="s3_config_vars/s3.dev.tfvars"
+                                    terraform apply -auto-approve -lock-timeout=10m -var "deploy_env=${DEPLOY_ENV}" -var-file="s3_config_vars/s3.dev.tfvars"
                                 elif [ "${TERRAFORM_ACTION}" = "destroy" ]; then
-                                    terraform destroy -auto-approve -lock-timeout=10m \
-                                        -var "deploy_env=${DEPLOY_ENV}" \
-                                        -var-file="s3_config_vars/s3.dev.tfvars"
+                                    terraform destroy -auto-approve -lock-timeout=10m -var "deploy_env=${DEPLOY_ENV}" -var-file="s3_config_vars/s3.dev.tfvars"
                                 else
-                                    terraform plan -lock-timeout=10m \
-                                        -var "deploy_env=${DEPLOY_ENV}" \
-                                        -var-file="s3_config_vars/s3.dev.tfvars"
+                                    terraform plan -lock-timeout=10m -var "deploy_env=${DEPLOY_ENV}" -var-file="s3_config_vars/s3.dev.tfvars"
                                 fi
                             '''
                         }
@@ -193,28 +185,31 @@ pipeline {
                                 ASG_NAME=$(terraform output -raw autoscaling_group_name 2>/dev/null || echo "")
                                 if [ -n "${ASG_NAME}" ] && [ "${ASG_NAME}" != "None" ]; then
                                     echo "Triggering rolling update for ASG: ${ASG_NAME}"
-                                    aws autoscaling start-instance-refresh \
-                                        --auto-scaling-group-name "${ASG_NAME}" \
-                                        --region "${AWS_REGION}" || echo "Rolling update may have already been triggered"
+                                    aws autoscaling start-instance-refresh --auto-scaling-group-name "${ASG_NAME}" --region "${AWS_REGION}" || echo "Rolling update may have already been triggered"
                                     
                                     echo "Waiting for rolling update to complete..."
-                                    aws autoscaling describe-instance-refreshes \
-                                        --auto-scaling-group-name "${ASG_NAME}" \
-                                        --region "${AWS_REGION}" \
-                                        --query "InstanceRefreshes[0].Status" \
-                                        --output text || echo "Could not check refresh status"
+                                    aws autoscaling describe-instance-refreshes --auto-scaling-group-name "${ASG_NAME}" --region "${AWS_REGION}" --query "InstanceRefreshes[0].Status" --output text || echo "Could not check refresh status"
                                 fi
                                 
                                 # Invalidate CloudFront cache after EC2 infra update
                                 CF_ID=$(terraform output -raw api_cloudfront_id 2>/dev/null || echo "")
                                 if [ -n "${CF_ID}" ] && [ "${CF_ID}" != "None" ]; then
                                     echo "Invalidating CloudFront distribution: ${CF_ID}"
-                                    aws cloudfront create-invalidation \
-                                        --distribution-id "${CF_ID}" \
-                                        --paths "/*" \
-                                        --query "Invalidation.Id" \
-                                        --output text
+                                    aws cloudfront create-invalidation --distribution-id "${CF_ID}" --paths "/*" --query "Invalidation.Id" --output text
                                     echo "CloudFront invalidation completed"
                                 else
                                     echo "No CloudFront distribution ID found, skipping invalidation"
                                 fi
+                                
+                            elif [ "${TERRAFORM_ACTION}" = "destroy" ]; then
+                                terraform destroy -auto-approve -lock-timeout=10m
+                            else
+                                terraform plan -lock-timeout=10m
+                            fi
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}
