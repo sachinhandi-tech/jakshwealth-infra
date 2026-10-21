@@ -378,12 +378,6 @@ resource "aws_cloudfront_cache_policy" "api_cors" {
       query_string_behavior = "none"
     }
   }
-  
-  cache_behaviors_config {
-    default_ttl = 0
-    max_ttl     = 86400
-    min_ttl     = 0
-  }
 }
 
 resource "aws_cloudfront_distribution" "api" {
