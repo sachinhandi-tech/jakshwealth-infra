@@ -4,7 +4,7 @@ exec > >(tee /var/log/kite-algo-setup-bootstrap.log | logger -t kite-algo-setup)
 
 dnf upgrade -y
 dnf install -y python3 python3-pip python3-dateutil nginx awscli-2 unzip
-python3 -m pip install --no-cache-dir 'kiteconnect>=5.0.1,<6'
+python3 -m pip install --no-cache-dir --break-system-packages 'kiteconnect>=5.0.1,<6'
 
 if ! id kite-algo-setup >/dev/null 2>&1; then
   useradd --system --home-dir /var/lib/kite-algo-setup --create-home --shell /sbin/nologin kite-algo-setup
@@ -124,7 +124,7 @@ fi
 rm -rf "$${ROOT}"
 mkdir -p "$${ROOT}"
 unzip -qo "$${ARCHIVE}" -d "$${ROOT}"
-python3 -m pip install --no-cache-dir -r "$${ROOT}/ec2_host/requirements.txt"
+python3 -m pip install --no-cache-dir --break-system-packages -r "$${ROOT}/ec2_host/requirements.txt"
 chown -R kite-algo-setup:kite-algo-setup /var/lib/kite-algo-setup
 systemctl enable kite-desk.service kite-app-config.service kite-secure-data.service
 systemctl restart kite-desk.service kite-app-config.service kite-secure-data.service
