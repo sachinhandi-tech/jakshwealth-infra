@@ -219,7 +219,7 @@ resource "aws_secretsmanager_secret" "jakshwealth" {
 }
 
 resource "aws_secretsmanager_secret_version" "postgres" {
-  secret_id = aws_secretsmanager_secret.postgres.id
+  secret_id = aws_secretsmanager_secret.jakshwealth.id
   secret_string = jsonencode({
     username     = aws_db_instance.postgres.username
     password     = random_password.db.result
@@ -267,7 +267,7 @@ resource "aws_iam_role_policy" "kite_db" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["secretsmanager:GetSecretValue"]
-      Resource = aws_secretsmanager_secret.postgres.arn
+      Resource = aws_secretsmanager_secret.jakshwealth.arn
     }]
   })
 }

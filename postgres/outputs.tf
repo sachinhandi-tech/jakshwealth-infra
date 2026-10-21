@@ -7,7 +7,7 @@ output "database_name" {
 }
 
 output "secret_name" {
-  value = aws_secretsmanager_secret.postgres.name
+  value = aws_secretsmanager_secret.jakshwealth.name
 }
 
 output "vpc_id" {
