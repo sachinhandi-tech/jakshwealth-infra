@@ -349,37 +349,6 @@ resource "aws_autoscaling_group" "parallel" {
   depends_on = [aws_route.parallel_default, aws_lb_listener.parallel]
 }
 
-# Custom cache policy to preserve CORS headers
-resource "aws_cloudfront_cache_policy" "api_cors" {
-  name        = "${local.name}-cors-cache"
-  comment     = "Cache policy that preserves CORS headers"
-  default_ttl = 0
-  max_ttl     = 86400
-  min_ttl     = 0
-  
-  parameters_in_cache_key_and_forwarded_to_origin {
-    cookies_config {
-      cookie_behavior = "none"
-    }
-    headers_config {
-      header_behavior = "whitelist"
-      headers {
-        items = [
-          "Access-Control-Allow-Origin",
-          "Access-Control-Allow-Methods",
-          "Access-Control-Allow-Headers",
-          "Access-Control-Expose-Headers",
-          "Origin",
-          "Authorization"
-        ]
-      }
-    }
-    query_strings_config {
-      query_string_behavior = "none"
-    }
-  }
-}
-
 resource "aws_cloudfront_distribution" "api" {
   enabled         = true
   is_ipv6_enabled = false
@@ -401,10 +370,10 @@ resource "aws_cloudfront_distribution" "api" {
 
   default_cache_behavior {
     allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods           = ["GET", "HEAD"]
+    cached_methods           = []
     target_origin_id         = "${local.name}-alb"
     viewer_protocol_policy   = "redirect-to-https"
-    cache_policy_id          = aws_cloudfront_cache_policy.api_cors.id
+    cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"  # CachingDisabled
     origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
     compress                 = true
   }
