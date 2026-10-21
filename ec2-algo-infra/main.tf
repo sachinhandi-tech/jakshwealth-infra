@@ -225,7 +225,7 @@ resource "aws_lb_target_group" "parallel" {
 
   health_check {
     enabled             = true
-    path                = "/health"
+    path                = "/api/kite/health"
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
