@@ -23,6 +23,11 @@ output "api_base_url" {
   value       = "https://${aws_cloudfront_distribution.api.domain_name}"
 }
 
+output "api_cloudfront_id" {
+  description = "CloudFront distribution ID for the API cache invalidation."
+  value       = aws_cloudfront_distribution.api.id
+}
+
 output "state_key" {
   description = "S3 state key for this stack. Production state keys are not used."
   value       = "dev/parallel-nse-scan/terraform.tfstate"

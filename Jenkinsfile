@@ -185,6 +185,20 @@ pipeline {
                             terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
                               terraform apply -auto-approve -lock-timeout=10m
+                              
+                              # Invalidate CloudFront cache after EC2 infra update
+                              CF_ID=$(terraform output -raw api_cloudfront_id 2>/dev/null || echo "")
+                              if [ -n "${CF_ID}" ] && [ "${CF_ID}" != "None" ]; then
+                                echo "Invalidating CloudFront distribution: ${CF_ID}"
+                                aws cloudfront create-invalidation \
+                                  --distribution-id "${CF_ID}" \
+                                  --paths "/*" \
+                                  --query "Invalidation.Id" \
+                                  --output text
+                                echo "CloudFront invalidation completed"
+                              else
+                                echo "No CloudFront distribution ID found, skipping invalidation"
+                              fi
                             else
                               terraform plan -lock-timeout=10m
                             fi
