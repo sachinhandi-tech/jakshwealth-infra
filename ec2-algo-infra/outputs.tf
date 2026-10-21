@@ -8,6 +8,11 @@ output "autoscaling_group" {
   value       = aws_autoscaling_group.parallel.name
 }
 
+output "autoscaling_group_name" {
+  description = "Auto Scaling group name for rolling updates."
+  value       = aws_autoscaling_group.parallel.name
+}
+
 output "vpc_id" {
   description = "Parallel VPC id. This is not the production VPC."
   value       = aws_vpc.parallel.id

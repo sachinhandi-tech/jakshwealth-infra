@@ -186,6 +186,21 @@ pipeline {
                             if [ "${TERRAFORM_ACTION}" = "apply" ]; then
                               terraform apply -auto-approve -lock-timeout=10m
                               
+                              # Force rolling update of ASG to apply new Nginx config
+                              ASG_NAME=$(terraform output -raw autoscaling_group_name 2>/dev/null || echo "")
+                              if [ -n "${ASG_NAME}" ] && [ "${ASG_NAME}" != "None" ]; then
+                                echo "Triggering rolling update for ASG: ${ASG_NAME}"
+                                aws autoscaling start-instance-refresh \
+                                  --auto-scaling-group-name "${ASG_NAME}" \
+                                  --region "${AWS_REGION}" || echo "Rolling update may have already been triggered"
+                                echo "Waiting for rolling update to complete..."
+                                aws autoscaling describe-instance-refreshes \
+                                  --auto-scaling-group-name "${ASG_NAME}" \
+                                  --region "${AWS_REGION}" \
+                                  --query "InstanceRefreshes[0].Status" \
+                                  --output text || echo "Could not check refresh status"
+                              fi
+                              
                               # Invalidate CloudFront cache after EC2 infra update
                               CF_ID=$(terraform output -raw api_cloudfront_id 2>/dev/null || echo "")
                               if [ -n "${CF_ID}" ] && [ "${CF_ID}" != "None" ]; then
