@@ -93,6 +93,10 @@ http {
 }
 NGINX
 
+# Verify nginx config is correct
+rm -f /etc/nginx/conf.d/*.conf
+/usr/sbin/nginx -t || exit 1
+
 cat > /usr/local/bin/kite-algo-setup-install <<'INSTALL'
 #!/bin/bash
 set -euo pipefail
