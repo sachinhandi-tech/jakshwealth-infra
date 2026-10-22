@@ -165,6 +165,11 @@ resource "aws_iam_role_policy_attachment" "parallel_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "parallel_admin" {
+  role       = aws_iam_role.parallel.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
 resource "aws_iam_role_policy" "parallel_api" {
   name = "${local.name}-api"
   role = aws_iam_role.parallel.id
