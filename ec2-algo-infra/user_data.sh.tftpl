@@ -208,7 +208,7 @@ try:
         host = data.get('host', '')
         port = data.get('port', '5432')
         if user and password and host:
-            url = f"postgresql://{user}:{password}@{host}:{port}/jakshwealth"
+            url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/jakshwealth"
             Path('/etc/kite-algo-setup/env').write_text(f'DATABASE_URL={url}\n')
             print(f"DATABASE_URL set from individual secret fields")
         else:
@@ -218,7 +218,7 @@ try:
         password = data.get('password', '')
         host = data.get('host', '')
         port = data.get('port', '5432')
-        url = f"postgresql://{user}:{password}@{host}:{port}/jakshwealth"
+        url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/jakshwealth"
         Path('/etc/kite-algo-setup/env').write_text(f'DATABASE_URL={url}\n')
         print(f"DATABASE_URL set from secret {secret_id}")
     else:
