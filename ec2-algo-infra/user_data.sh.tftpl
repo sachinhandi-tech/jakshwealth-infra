@@ -96,7 +96,7 @@ NGINX
 cat > /usr/local/bin/kite-algo-setup-install <<'INSTALL'
 #!/bin/bash
 set -euo pipefail
-ARCHIVE=/var/lib/kite-algo-setup/api.zip
+ARCHIVE=/var/lib/kite-algo-setup/jakshwealth-api.zip
 ROOT=/opt/kite-algo-setup/current
 if [ ! -s "$${ARCHIVE}" ]; then
   echo "API bundle is not on this instance yet."
@@ -135,8 +135,8 @@ chmod 0755 /usr/local/bin/kite-algo-setup-publish
 cat > /usr/local/bin/kite-algo-setup-sync <<'SYNC'
 #!/bin/bash
 set -euo pipefail
-DEST=/var/lib/kite-algo-setup/api.zip
-TMP=/var/lib/kite-algo-setup/api.zip.tmp
+DEST=/var/lib/kite-algo-setup/jakshwealth-api.zip
+TMP=/var/lib/kite-algo-setup/jakshwealth-api.zip.tmp
 python3 - "$${TMP}" "${artifact_bucket}" <<'PY'
 import sys
 import boto3
@@ -147,7 +147,7 @@ bucket = sys.argv[2]
 
 try:
     s3 = boto3.client('s3')
-    s3.download_file(bucket, 'kite-algo-setup/api.zip', tmp_file)
+    s3.download_file(bucket, 'kite-algo-setup/jakshwealth-api.zip', tmp_file)
 except Exception as e:
     print(f"Failed to download: {e}", file=sys.stderr)
     Path(tmp_file).unlink(missing_ok=True)
