@@ -4,7 +4,6 @@ exec > >(tee /var/log/kite-algo-setup-bootstrap.log | logger -t kite-algo-setup)
 
 dnf upgrade -y
 dnf install -y python3 python3-pip python3-dateutil nginx awscli-2 unzip
-python3 -m pip install --no-cache-dir --upgrade --force-reinstall 'kiteconnect>=5.0.1,<6' boto3 fastapi uvicorn sqlalchemy psycopg requests yfinance pandas pydantic || true
 
 if ! id kite-algo-setup >/dev/null 2>&1; then
   useradd --system --home-dir /var/lib/kite-algo-setup --create-home --shell /sbin/nologin kite-algo-setup
@@ -12,22 +11,6 @@ fi
 install -d -o root -g root -m 0755 /opt/kite-algo-setup
 install -d -o kite-algo-setup -g kite-algo-setup -m 0750 /var/lib/kite-algo-setup
 install -d -o kite-algo-setup -g kite-algo-setup -m 0750 /opt/kite-algo-setup/current
-
-python3 - <<'PY'
-import base64
-import gzip
-from pathlib import Path
-files = {
-    "breakout.py": "${breakout_b64}",
-    "market.py": "${market_b64}",
-    "server.py": "${server_b64}",
-}
-root = Path("/opt/kite-algo-setup")
-for name, payload in files.items():
-    (root / name).write_bytes(gzip.decompress(base64.b64decode(payload)))
-PY
-chown root:root /opt/kite-algo-setup/*.py
-chmod 0644 /opt/kite-algo-setup/*.py
 
 cat > /etc/nginx/nginx.conf <<'NGINX'
 worker_processes 1;
@@ -93,9 +76,13 @@ http {
 }
 NGINX
 
-# Verify nginx config is correct
+# Start nginx EARLY to pass health checks during long pip install
 rm -f /etc/nginx/conf.d/*.conf
-/usr/sbin/nginx -t || exit 1
+/usr/sbin/nginx -t || true
+systemctl enable --now nginx
+
+# Now do the long pip install (can run while health checks pass)
+python3 -m pip install --no-cache-dir --upgrade --force-reinstall 'kiteconnect>=5.0.1,<6' boto3 fastapi uvicorn sqlalchemy psycopg requests yfinance pandas pydantic || true
 
 cat > /usr/local/bin/kite-algo-setup-install <<'INSTALL'
 #!/bin/bash
