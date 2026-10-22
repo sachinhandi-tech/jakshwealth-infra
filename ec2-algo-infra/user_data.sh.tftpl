@@ -177,9 +177,12 @@ UNIT
 
 python3 - <<'PY'
 from pathlib import Path
-text = Path("/opt/kite-algo-setup/server.py").read_text(encoding="utf-8")
-text = text.replace('PORT = 8080', 'PORT = 8090')
-Path("/opt/kite-algo-setup/server.py").write_text(text, encoding="utf-8")
+try:
+  text = Path("/opt/kite-algo-setup/server.py").read_text(encoding="utf-8")
+  text = text.replace('PORT = 8080', 'PORT = 8090')
+  Path("/opt/kite-algo-setup/server.py").write_text(text, encoding="utf-8")
+except FileNotFoundError:
+  pass
 PY
 
 cat > /etc/systemd/system/kite-desk.service <<'UNIT'
