@@ -92,5 +92,5 @@ variable "ui_bucket" {
 variable "db_secret_id" {
   type        = string
   description = "Secrets Manager id with the platform database URL and Kite app settings."
-  default     = "jakshwealth/dev/postgres"
+  default     = "jakshwealth/dev/jakshwealth"
 }
