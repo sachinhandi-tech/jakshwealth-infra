@@ -273,6 +273,7 @@ resource "aws_launch_template" "parallel" {
     ui_bucket         = var.ui_bucket
     artifact_bucket   = var.artifact_bucket
     db_secret_id      = var.db_secret_id
+    aws_region        = var.aws_region
   }))
 
   metadata_options {
