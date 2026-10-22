@@ -185,6 +185,34 @@ except FileNotFoundError:
   pass
 PY
 
+# Fetch DATABASE_URL from Secrets Manager and write environment file
+mkdir -p /etc/kite-algo-setup
+python3 - "${db_secret_id}" <<'PY'
+import sys
+import json
+import boto3
+from pathlib import Path
+
+secret_id = sys.argv[1]
+try:
+    secret = boto3.client('secretsmanager').get_secret_value(SecretId=secret_id)
+    data = json.loads(secret['SecretString'])
+    database_url = data.get('engine', '').lower()
+    if database_url.startswith('postgres'):
+        user = data.get('username', '')
+        password = data.get('password', '')
+        host = data.get('host', '')
+        port = data.get('port', '5432')
+        url = f"postgresql://{user}:{password}@{host}:{port}/jakshwealth"
+        Path('/etc/kite-algo-setup/env').write_text(f'DATABASE_URL={url}\n')
+        print(f"DATABASE_URL set from secret {secret_id}")
+    else:
+        print(f"Unknown engine in secret: {database_url}", file=__import__('sys').stderr)
+except Exception as e:
+    print(f"Failed to fetch secret: {e}", file=__import__('sys').stderr)
+    sys.exit(1)
+PY
+
 cat > /etc/systemd/system/kite-desk.service <<'UNIT'
 [Unit]
 Description=JakshWealth Kite desk
@@ -195,6 +223,7 @@ Type=simple
 User=kite-algo-setup
 Group=kite-algo-setup
 WorkingDirectory=/opt/kite-algo-setup/current
+EnvironmentFile=/etc/kite-algo-setup/env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONPATH=/opt/kite-algo-setup/current
 Environment=HOME=/var/lib/kite-algo-setup
