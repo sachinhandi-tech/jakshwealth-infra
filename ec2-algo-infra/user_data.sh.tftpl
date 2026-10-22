@@ -82,7 +82,7 @@ rm -f /etc/nginx/conf.d/*.conf
 systemctl enable --now nginx
 
 # Now do the long pip install (can run while health checks pass)
-python3 -m pip install --no-cache-dir --ignore-installed --upgrade --force-reinstall 'kiteconnect>=5.0.1,<6' boto3 fastapi uvicorn sqlalchemy psycopg requests yfinance pandas pydantic || true
+python3 -m pip install --no-cache-dir --ignore-installed --upgrade --force-reinstall 'kiteconnect>=5.0.1,<6' boto3 fastapi uvicorn sqlalchemy psycopg2-binary requests yfinance pandas pydantic || true
 
 cat > /usr/local/bin/kite-algo-setup-install <<'INSTALL'
 #!/bin/bash
