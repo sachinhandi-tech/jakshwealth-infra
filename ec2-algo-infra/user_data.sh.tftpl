@@ -271,6 +271,14 @@ try:
     if kite_api_secret:
         env_content += f'KITE_API_SECRET={kite_api_secret}\n'
         print(f"KITE_API_SECRET set from secret")
+    fernet_key = data.get('fernet_key', '')
+    if fernet_key:
+        env_content += f'FERNET_KEY={fernet_key}\n'
+        print(f"FERNET_KEY set from secret")
+    state_secret = data.get('state_secret', '')
+    if state_secret:
+        env_content += f'KITE_STATE_SECRET={state_secret}\n'
+        print(f"KITE_STATE_SECRET set from secret")
 
     if env_content:
         Path('/etc/kite-algo-setup/env').write_text(env_content)
