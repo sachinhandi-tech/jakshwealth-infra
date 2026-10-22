@@ -187,15 +187,16 @@ PY
 
 # Fetch DATABASE_URL from Secrets Manager and write environment file
 mkdir -p /etc/kite-algo-setup
-python3 - "${db_secret_id}" <<'PY'
+python3 - "${db_secret_id}" "${aws_region}" <<'PY'
 import sys
 import json
 import boto3
 from pathlib import Path
 
 secret_id = sys.argv[1]
+region = sys.argv[2]
 try:
-    secret = boto3.client('secretsmanager').get_secret_value(SecretId=secret_id)
+    secret = boto3.client('secretsmanager', region_name=region).get_secret_value(SecretId=secret_id)
     data = json.loads(secret['SecretString'])
     database_url = data.get('engine', '').lower()
     if database_url.startswith('postgres'):
