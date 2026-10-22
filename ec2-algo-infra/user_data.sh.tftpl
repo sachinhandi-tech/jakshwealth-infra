@@ -199,6 +199,8 @@ try:
     secret = boto3.client('secretsmanager', region_name=region).get_secret_value(SecretId=secret_id)
     data = json.loads(secret['SecretString'])
     print(f"Secret keys: {list(data.keys())}", file=__import__('sys').stderr)
+
+    # Extract database credentials
     database_url = data.get('engine', '').lower()
     if not database_url:
         print(f"Engine field empty or missing. Checking for alternative fields...", file=__import__('sys').stderr)
@@ -208,21 +210,40 @@ try:
         host = data.get('host', '')
         port = data.get('port', '5432')
         if user and password and host:
-            url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/jakshwealth"
-            Path('/etc/kite-algo-setup/env').write_text(f'DATABASE_URL={url}\n')
-            print(f"DATABASE_URL set from individual secret fields")
+            database_url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/jakshwealth"
         else:
             print(f"Missing required fields. Got: user={bool(user)}, pass={bool(password)}, host={bool(host)}", file=__import__('sys').stderr)
+            database_url = None
     elif database_url.startswith('postgres'):
         user = data.get('username', '')
         password = data.get('password', '')
         host = data.get('host', '')
         port = data.get('port', '5432')
-        url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/jakshwealth"
-        Path('/etc/kite-algo-setup/env').write_text(f'DATABASE_URL={url}\n')
-        print(f"DATABASE_URL set from secret {secret_id}")
+        database_url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/jakshwealth"
     else:
         print(f"Unknown engine in secret: {database_url}", file=__import__('sys').stderr)
+        database_url = None
+
+    # Extract Kite API credentials
+    kite_api_key = data.get('kite_api_key', '')
+    kite_api_secret = data.get('kite_api_secret', '')
+
+    # Write environment file with all credentials
+    env_content = ""
+    if database_url:
+        env_content += f'DATABASE_URL={database_url}\n'
+        print(f"DATABASE_URL set from secret {secret_id}")
+    if kite_api_key:
+        env_content += f'KITE_API_KEY={kite_api_key}\n'
+        print(f"KITE_API_KEY set from secret")
+    if kite_api_secret:
+        env_content += f'KITE_API_SECRET={kite_api_secret}\n'
+        print(f"KITE_API_SECRET set from secret")
+
+    if env_content:
+        Path('/etc/kite-algo-setup/env').write_text(env_content)
+    else:
+        print(f"No credentials found in secret", file=__import__('sys').stderr)
 except Exception as e:
     print(f"Failed to fetch secret: {e}", file=__import__('sys').stderr)
     sys.exit(1)
