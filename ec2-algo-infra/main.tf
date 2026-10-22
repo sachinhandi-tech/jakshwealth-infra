@@ -136,21 +136,21 @@ resource "aws_security_group" "parallel" {
 
 resource "aws_security_group_rule" "alb_to_instances" {
   type                     = "egress"
-  description              = "Forward to scan instances"
+  description              = "Forward to nginx on instances"
   security_group_id        = aws_security_group.alb.id
   source_security_group_id = aws_security_group.parallel.id
-  from_port                = 8090
-  to_port                  = 8090
+  from_port                = 8080
+  to_port                  = 8080
   protocol                 = "tcp"
 }
 
 resource "aws_security_group_rule" "scan_ingress" {
   type                     = "ingress"
-  description              = "Scan service from the load balancer"
+  description              = "Nginx from the load balancer"
   security_group_id        = aws_security_group.parallel.id
   source_security_group_id = aws_security_group.alb.id
-  from_port                = 8090
-  to_port                  = 8090
+  from_port                = 8080
+  to_port                  = 8080
   protocol                 = "tcp"
 }
 
@@ -222,7 +222,7 @@ resource "aws_lb" "parallel" {
 
 resource "aws_lb_target_group" "parallel" {
   name                 = local.name
-  port                 = 8090
+  port                 = 8080
   protocol             = "HTTP"
   vpc_id               = aws_vpc.parallel.id
   target_type          = "instance"
