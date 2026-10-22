@@ -198,8 +198,22 @@ region = sys.argv[2]
 try:
     secret = boto3.client('secretsmanager', region_name=region).get_secret_value(SecretId=secret_id)
     data = json.loads(secret['SecretString'])
+    print(f"Secret keys: {list(data.keys())}", file=__import__('sys').stderr)
     database_url = data.get('engine', '').lower()
-    if database_url.startswith('postgres'):
+    if not database_url:
+        print(f"Engine field empty or missing. Checking for alternative fields...", file=__import__('sys').stderr)
+        # Try to construct from individual fields
+        user = data.get('username', '')
+        password = data.get('password', '')
+        host = data.get('host', '')
+        port = data.get('port', '5432')
+        if user and password and host:
+            url = f"postgresql://{user}:{password}@{host}:{port}/jakshwealth"
+            Path('/etc/kite-algo-setup/env').write_text(f'DATABASE_URL={url}\n')
+            print(f"DATABASE_URL set from individual secret fields")
+        else:
+            print(f"Missing required fields. Got: user={bool(user)}, pass={bool(password)}, host={bool(host)}", file=__import__('sys').stderr)
+    elif database_url.startswith('postgres'):
         user = data.get('username', '')
         password = data.get('password', '')
         host = data.get('host', '')
