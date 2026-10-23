@@ -11,6 +11,16 @@ fi
 install -d -o root -g root -m 0755 /opt/kite-algo-setup
 install -d -o kite-algo-setup -g kite-algo-setup -m 0750 /var/lib/kite-algo-setup
 install -d -o kite-algo-setup -g kite-algo-setup -m 0750 /opt/kite-algo-setup/current
+python3 - "${breakout_b64}" "${market_b64}" "${server_b64}" <<'PY'
+import base64
+import gzip
+import sys
+from pathlib import Path
+
+root = Path("/opt/kite-algo-setup")
+for name, payload in zip(("breakout.py", "market.py", "server.py"), sys.argv[1:]):
+    root.joinpath(name).write_bytes(gzip.decompress(base64.b64decode(payload)))
+PY
 
 cat > /etc/nginx/nginx.conf <<'NGINX'
 worker_processes 1;
@@ -229,29 +239,18 @@ try:
     data = json.loads(secret['SecretString'])
     print(f"Secret keys: {list(data.keys())}", file=__import__('sys').stderr)
 
-    # Extract database credentials
-    database_url = data.get('engine', '').lower()
-    if not database_url:
-        print(f"Engine field empty or missing. Checking for alternative fields...", file=__import__('sys').stderr)
-        # Try to construct from individual fields
+    database_url = str(data.get('url') or '').strip()
+    if not database_url.startswith('postgres'):
         user = data.get('username', '')
         password = data.get('password', '')
         host = data.get('host', '')
         port = data.get('port', '5432')
+        dbname = data.get('dbname') or 'jakshwealth'
         if user and password and host:
-            database_url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/jakshwealth"
+            database_url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}?sslmode=require"
         else:
-            print(f"Missing required fields. Got: user={bool(user)}, pass={bool(password)}, host={bool(host)}", file=__import__('sys').stderr)
+            print("Secret has no database url or host", file=__import__('sys').stderr)
             database_url = None
-    elif database_url.startswith('postgres'):
-        user = data.get('username', '')
-        password = data.get('password', '')
-        host = data.get('host', '')
-        port = data.get('port', '5432')
-        database_url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/jakshwealth"
-    else:
-        print(f"Unknown engine in secret: {database_url}", file=__import__('sys').stderr)
-        database_url = None
 
     # Extract Kite API credentials
     kite_api_key = data.get('kite_api_key', '')
@@ -280,10 +279,11 @@ try:
     if env_content:
         Path('/etc/kite-algo-setup/env').write_text(env_content)
     else:
-        print(f"No credentials found in secret", file=__import__('sys').stderr)
+        print("No credentials found in secret", file=__import__('sys').stderr)
+        Path('/etc/kite-algo-setup/env').touch()
 except Exception as e:
-    print(f"Failed to fetch secret: {e}", file=__import__('sys').stderr)
-    sys.exit(1)
+    print(f"Failed to fetch secret: {type(e).__name__}", file=__import__('sys').stderr)
+    Path('/etc/kite-algo-setup/env').touch()
 PY
 
 cat > /etc/systemd/system/kite-desk.service <<'UNIT'
@@ -296,7 +296,7 @@ Type=simple
 User=kite-algo-setup
 Group=kite-algo-setup
 WorkingDirectory=/opt/kite-algo-setup/current
-EnvironmentFile=/etc/kite-algo-setup/env
+EnvironmentFile=-/etc/kite-algo-setup/env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONPATH=/opt/kite-algo-setup/current
 Environment=HOME=/var/lib/kite-algo-setup
@@ -345,5 +345,5 @@ UNIT
 sed -i 's/^PORT = 8080$/PORT = 8090/' /opt/kite-algo-setup/server.py || true
 
 systemctl daemon-reload
-systemctl enable --now nginx kite-scan.service kite-algo-setup-sync.timer
+systemctl enable --now nginx kite-scan.service kite-desk.service kite-algo-setup-sync.timer
 /usr/local/bin/kite-algo-setup-sync || true
