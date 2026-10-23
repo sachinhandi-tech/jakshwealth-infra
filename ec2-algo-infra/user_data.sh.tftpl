@@ -92,16 +92,13 @@ http {
       proxy_set_header Connection "upgrade";
       proxy_read_timeout 60s;
     }
-    location /jw-api/app-config {
+
+    location /jw-api/ {
       proxy_pass http://127.0.0.1:8082;
       proxy_http_version 1.1;
       proxy_set_header Host $host;
-      proxy_read_timeout 30s;
-    }
-    location /jw-api/secure-data {
-      proxy_pass http://127.0.0.1:8083;
-      proxy_http_version 1.1;
-      proxy_set_header Host $host;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
       proxy_read_timeout 900s;
     }
   }
@@ -130,8 +127,8 @@ mkdir -p "$${ROOT}"
 unzip -qo "$${ARCHIVE}" -d "$${ROOT}"
 python3 -m pip install --no-cache-dir --ignore-installed -r "$${ROOT}/ec2_host/requirements.txt"
 chown -R kite-algo-setup:kite-algo-setup /var/lib/kite-algo-setup
-systemctl enable kite-desk.service kite-app-config.service kite-secure-data.service
-systemctl restart kite-desk.service kite-app-config.service kite-secure-data.service
+systemctl enable kite-desk.service
+systemctl restart kite-desk.service
 /usr/local/bin/kite-algo-setup-publish || true
 INSTALL
 chmod 0755 /usr/local/bin/kite-algo-setup-install
@@ -320,49 +317,7 @@ RestartSec=2
 WantedBy=multi-user.target
 UNIT
 
-cat > /etc/systemd/system/kite-app-config.service <<'UNIT'
-[Unit]
-Description=JakshWealth app config
-After=network-online.target
 
-[Service]
-Type=simple
-User=kite-algo-setup
-Group=kite-algo-setup
-WorkingDirectory=/opt/kite-algo-setup/current/ec2_host
-Environment=PYTHONUNBUFFERED=1
-Environment=PYTHONPATH=/opt/kite-algo-setup/current/ec2_host
-Environment=HOME=/var/lib/kite-algo-setup
-Environment=ENVIRONMENT=dev
-ExecStart=/usr/bin/python3 /opt/kite-algo-setup/current/ec2_host/serve_lambda.py --app-dir /opt/kite-algo-setup/current/lambda/jw_app_config --port 8082
-Restart=always
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-
-cat > /etc/systemd/system/kite-secure-data.service <<'UNIT'
-[Unit]
-Description=JakshWealth secure data
-After=network-online.target
-
-[Service]
-Type=simple
-User=kite-algo-setup
-Group=kite-algo-setup
-WorkingDirectory=/opt/kite-algo-setup/current/ec2_host
-Environment=PYTHONUNBUFFERED=1
-Environment=PYTHONPATH=/opt/kite-algo-setup/current/ec2_host
-Environment=HOME=/var/lib/kite-algo-setup
-Environment=ENVIRONMENT=dev
-ExecStart=/usr/bin/python3 /opt/kite-algo-setup/current/ec2_host/serve_lambda.py --app-dir /opt/kite-algo-setup/current/lambda/jw_secure_data --port 8083
-Restart=always
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-UNIT
 
 cat > /etc/systemd/system/kite-algo-setup-sync.service <<'UNIT'
 [Unit]
