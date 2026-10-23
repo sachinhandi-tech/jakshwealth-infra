@@ -202,7 +202,7 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name       = aws_db_subnet_group.postgres.name
   vpc_security_group_ids     = [aws_security_group.postgres.id]
   parameter_group_name       = aws_db_parameter_group.postgres.name
-  publicly_accessible        = false
+  publicly_accessible        = true
   storage_encrypted          = true
   backup_retention_period    = 7
   deletion_protection        = true
