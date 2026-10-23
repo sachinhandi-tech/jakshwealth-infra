@@ -53,7 +53,7 @@ http {
       proxy_read_timeout 900s;
     }
     location /jw-api/kite/ {
-      proxy_pass http://127.0.0.1:8081/api/kite/;
+      proxy_pass http://127.0.0.1:8082/api/kite/;
       proxy_http_version 1.1;
       proxy_set_header Host $host;
       proxy_set_header Upgrade $http_upgrade;
@@ -61,31 +61,31 @@ http {
       proxy_read_timeout 60s;
     }
     location /jw-api/auth/ {
-      proxy_pass http://127.0.0.1:8081/auth/;
+      proxy_pass http://127.0.0.1:8082/auth/;
       proxy_http_version 1.1;
       proxy_set_header Host $host;
       proxy_read_timeout 60s;
     }
     location /jw-api/scanner-data {
-      proxy_pass http://127.0.0.1:8081/api/scanner-data;
+      proxy_pass http://127.0.0.1:8082/api/scanner-data;
       proxy_http_version 1.1;
       proxy_set_header Host $host;
       proxy_read_timeout 60s;
     }
     location /jw-api/ohlc {
-      proxy_pass http://127.0.0.1:8081/api/ohlc;
+      proxy_pass http://127.0.0.1:8082/api/ohlc;
       proxy_http_version 1.1;
       proxy_set_header Host $host;
       proxy_read_timeout 60s;
     }
     location /jw-api/algo-orders/ {
-      proxy_pass http://127.0.0.1:8081/api/algo-orders/;
+      proxy_pass http://127.0.0.1:8082/api/algo-orders/;
       proxy_http_version 1.1;
       proxy_set_header Host $host;
       proxy_read_timeout 60s;
     }
     location /jw-api/ws/ {
-      proxy_pass http://127.0.0.1:8081/ws/;
+      proxy_pass http://127.0.0.1:8082/ws/;
       proxy_http_version 1.1;
       proxy_set_header Host $host;
       proxy_set_header Upgrade $http_upgrade;
@@ -312,7 +312,7 @@ Environment=SCANNER_CACHE_BUCKET=${artifact_bucket}
 Environment=SCANNER_CACHE_KEY=kite-scanner/scanner-data.json
 Environment=SCANNER_FILL_BUDGET_SECONDS=45
 Environment=ENVIRONMENT=dev
-ExecStart=/usr/bin/python3 -m uvicorn kite_app.main:app --host 127.0.0.1 --port 8081
+ExecStart=/usr/bin/python3 -m uvicorn kite_app.main:app --host 127.0.0.1 --port 8082
 Restart=always
 RestartSec=2
 
