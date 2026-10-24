@@ -98,6 +98,11 @@ resource "aws_security_group" "postgres" {
   vpc_id      = aws_vpc.postgres.id
   tags        = local.tags
 
+  # Do not rewrite these rules on apply. That removal is what the browser showed as CORS.
+  lifecycle {
+    ignore_changes = [ingress, egress]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

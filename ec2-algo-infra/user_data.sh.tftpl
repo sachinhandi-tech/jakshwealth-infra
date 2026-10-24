@@ -115,7 +115,20 @@ http {
 }
 NGINX
 
-# Start nginx EARLY to pass health checks during long pip install
+# Publish this public address before nginx can pass a health check.
+# The previous instance keeps serving until this one is allowed to open Postgres.
+TOKEN=$(curl -fsS -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+PUBLIC_IP=$(curl -fsS -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+set +e
+INGRESS_RESULT=$(aws ec2 authorize-security-group-ingress --region ${aws_region} --group-id ${postgres_sg_id} --ip-permissions "IpProtocol=tcp,FromPort=5432,ToPort=5432,IpRanges=[{CidrIp=$${PUBLIC_IP}/32,Description=Postgres from kite-algo-setup public address}]" 2>&1)
+INGRESS_STATUS=$?
+set -e
+if [ "$INGRESS_STATUS" -ne 0 ] && ! printf '%s' "$INGRESS_RESULT" | grep -q 'InvalidPermission.Duplicate'; then
+  printf '%s\n' "$INGRESS_RESULT" >&2
+  exit 1
+fi
+
+# Start nginx only after the database group allows this instance.
 rm -f /etc/nginx/conf.d/*.conf
 /usr/sbin/nginx -t || true
 systemctl enable --now nginx

@@ -84,6 +84,11 @@ resource "aws_security_group" "alb" {
   vpc_id      = aws_vpc.parallel.id
   tags        = merge(local.tags, { Name = "${local.name}-alb" })
 
+  # Rules are attached below. An apply must not rewrite them, or CloudFront loses port 80 and the browser shows CORS.
+  lifecycle {
+    ignore_changes = [ingress, egress]
+  }
+
   ingress {
     description = "HTTP from the tester"
     from_port   = 80
@@ -91,22 +96,16 @@ resource "aws_security_group" "alb" {
     protocol    = "tcp"
     cidr_blocks = [var.allowed_cidr]
   }
+}
 
-  ingress {
-    description     = "HTTP from CloudFront"
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
-  }
-
-  egress {
-    description     = "Forward to nginx on instances"
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.parallel.id]
-  }
+resource "aws_security_group_rule" "cloudfront_to_alb" {
+  type              = "ingress"
+  description       = "HTTP from CloudFront"
+  security_group_id = aws_security_group.alb.id
+  prefix_list_ids   = [data.aws_ec2_managed_prefix_list.cloudfront.id]
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
 }
 
 resource "aws_security_group" "parallel" {
@@ -114,6 +113,11 @@ resource "aws_security_group" "parallel" {
   description = "kite-algo-setup instances. TCP 8080 from the load balancer only."
   vpc_id      = aws_vpc.parallel.id
   tags        = local.tags
+
+  # Keep the live Nginx and Postgres rules. Rewriting egress on apply removes 5432 and the desk times out.
+  lifecycle {
+    ignore_changes = [ingress, egress]
+  }
 
   egress {
     description = "HTTPS for Kite, Amazon Linux repositories, and SSM public endpoints"
@@ -146,6 +150,16 @@ resource "aws_security_group" "parallel" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+resource "aws_security_group_rule" "alb_to_instances" {
+  type                     = "egress"
+  description              = "Forward to nginx on instances"
+  security_group_id        = aws_security_group.alb.id
+  source_security_group_id = aws_security_group.parallel.id
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
 }
 
 resource "aws_security_group_rule" "scan_ingress" {
