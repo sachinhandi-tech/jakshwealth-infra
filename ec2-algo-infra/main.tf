@@ -98,6 +98,11 @@ resource "aws_security_group" "alb" {
   }
 }
 
+import {
+  to = aws_security_group_rule.cloudfront_to_alb
+  id = "sgr-0e3eadc14d1ce7247"
+}
+
 resource "aws_security_group_rule" "cloudfront_to_alb" {
   type              = "ingress"
   description       = "HTTP from CloudFront"
