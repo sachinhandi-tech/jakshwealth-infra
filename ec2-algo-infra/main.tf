@@ -100,7 +100,7 @@ resource "aws_security_group" "alb" {
 
 import {
   to = aws_security_group_rule.cloudfront_to_alb
-  id = "sgr-0e3eadc14d1ce7247"
+  id = "sg-0af3ae7480ee9a45f_ingress_tcp_80_80_pl-0a25c3463226fcc61"
 }
 
 resource "aws_security_group_rule" "cloudfront_to_alb" {
