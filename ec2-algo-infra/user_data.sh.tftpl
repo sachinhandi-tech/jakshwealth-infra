@@ -288,6 +288,14 @@ try:
     if state_secret:
         env_content += f'KITE_STATE_SECRET={state_secret}\n'
         print(f"KITE_STATE_SECRET set from secret")
+    llm_api_key = str(data.get('llm_api_key') or '').strip()
+    if llm_api_key:
+        env_content += f'LLM_API_KEY={llm_api_key}\n'
+        print("LLM_API_KEY set from secret")
+    llm_model = str(data.get('llm_model') or '').strip()
+    if llm_model:
+        env_content += f'LLM_MODEL={llm_model}\n'
+        print("LLM_MODEL set from secret")
 
     if env_content:
         Path('/etc/kite-algo-setup/env').write_text(env_content)
@@ -316,6 +324,8 @@ Environment=HOME=/var/lib/kite-algo-setup
 Environment=KITE_SESSION_PATH=/var/lib/kite-algo-setup/kite-session.json
 Environment=SCANNER_CACHE_PATH=/var/lib/kite-algo-setup/scanner-data.json
 Environment=KITE_DB_SECRET_ID=${db_secret_id}
+Environment=AWS_REGION=${aws_region}
+Environment=AWS_DEFAULT_REGION=${aws_region}
 Environment=KITE_SESSION_BUCKET=${artifact_bucket}
 Environment=KITE_SESSION_KEY=kite-session/session.json
 Environment=SCANNER_CACHE_BUCKET=${artifact_bucket}
