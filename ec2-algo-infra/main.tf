@@ -80,7 +80,7 @@ resource "aws_route_table_association" "parallel" {
 
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb"
-  description = "Parallel scan load balancer. TCP 80 from CloudFront and the tester CIDR."
+  description = "Parallel scan load balancer. TCP 80 from the tester CIDR only."
   vpc_id      = aws_vpc.parallel.id
   tags        = merge(local.tags, { Name = "${local.name}-alb" })
 
