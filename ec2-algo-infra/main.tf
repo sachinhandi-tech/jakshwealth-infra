@@ -80,7 +80,7 @@ resource "aws_route_table_association" "parallel" {
 
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb"
-  description = "Parallel scan load balancer. TCP 80 from the tester CIDR only."
+  description = "Parallel scan load balancer. TCP 80 from CloudFront and the tester CIDR."
   vpc_id      = aws_vpc.parallel.id
   tags        = merge(local.tags, { Name = "${local.name}-alb" })
 
@@ -91,16 +91,22 @@ resource "aws_security_group" "alb" {
     protocol    = "tcp"
     cidr_blocks = [var.allowed_cidr]
   }
-}
 
-resource "aws_security_group_rule" "cloudfront_to_alb" {
-  type              = "ingress"
-  description       = "HTTP from CloudFront"
-  security_group_id = aws_security_group.alb.id
-  prefix_list_ids   = [data.aws_ec2_managed_prefix_list.cloudfront.id]
-  from_port         = 80
-  to_port           = 80
-  protocol          = "tcp"
+  ingress {
+    description     = "HTTP from CloudFront"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
+  }
+
+  egress {
+    description     = "Forward to nginx on instances"
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.parallel.id]
+  }
 }
 
 resource "aws_security_group" "parallel" {
@@ -132,16 +138,14 @@ resource "aws_security_group" "parallel" {
     protocol    = "tcp"
     cidr_blocks = ["${local.dns_resolver}/32"]
   }
-}
 
-resource "aws_security_group_rule" "alb_to_instances" {
-  type                     = "egress"
-  description              = "Forward to nginx on instances"
-  security_group_id        = aws_security_group.alb.id
-  source_security_group_id = aws_security_group.parallel.id
-  from_port                = 8080
-  to_port                  = 8080
-  protocol                 = "tcp"
+  egress {
+    description = "Postgres for development. The database address is public, so this cannot be a security-group rule."
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_security_group_rule" "scan_ingress" {
@@ -274,6 +278,10 @@ resource "aws_launch_template" "parallel" {
     artifact_bucket   = var.artifact_bucket
     db_secret_id      = var.db_secret_id
     aws_region        = var.aws_region
+    postgres_sg_id    = data.terraform_remote_state.postgres.outputs.postgres_security_group_id
+    instance_sg_id    = aws_security_group.parallel.id
+    alb_sg_id         = aws_security_group.alb.id
+    cloudfront_prefix = data.aws_ec2_managed_prefix_list.cloudfront.id
   }))
 
   metadata_options {

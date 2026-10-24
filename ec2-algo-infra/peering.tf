@@ -1,5 +1,6 @@
-# The subscriber database stays in its existing VPC. This stack peers to it so the
-# kite-algo-setup instances can open 5432 as a security group, not as 0.0.0.0/0.
+# The subscriber database stays in its existing VPC. Peering remains for the private
+# path. The live database address is public, so instance egress for 5432 is open and
+# each instance adds its own public address to the database security group.
 
 data "terraform_remote_state" "postgres" {
   backend = "s3"
@@ -34,17 +35,6 @@ resource "aws_route" "postgres_private_to_parallel" {
   route_table_id            = data.terraform_remote_state.postgres.outputs.kite_private_route_table_id
   destination_cidr_block    = var.vpc_cidr
   vpc_peering_connection_id = aws_vpc_peering_connection.postgres.id
-}
-
-resource "aws_security_group_rule" "instances_to_postgres" {
-  type                     = "egress"
-  description              = "Postgres in the subscriber VPC"
-  security_group_id        = aws_security_group.parallel.id
-  source_security_group_id = data.terraform_remote_state.postgres.outputs.postgres_security_group_id
-  from_port                = 5432
-  to_port                  = 5432
-  protocol                 = "tcp"
-  depends_on               = [aws_vpc_peering_connection.postgres]
 }
 
 resource "aws_security_group_rule" "postgres_from_instances" {

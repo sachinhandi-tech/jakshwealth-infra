@@ -344,6 +344,152 @@ UNIT
 # The scan helper was written for port 8080. Nginx owns 8080 and forwards /scans to 8090.
 sed -i 's/^PORT = 8080$/PORT = 8090/' /opt/kite-algo-setup/server.py || true
 
+cat > /usr/local/bin/kite-postgres-ingress <<'PY'
+#!/usr/bin/env python3
+"""Keep CloudFront, this instance, and the database security group aligned."""
+import json
+import os
+import urllib.request
+
+import boto3
+from botocore.exceptions import ClientError
+
+
+def allow(call) -> None:
+    try:
+        call()
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") != "InvalidPermission.Duplicate":
+            raise
+
+
+def public_ip() -> str:
+    token_request = urllib.request.Request(
+        "http://169.254.169.254/latest/api/token",
+        method="PUT",
+        headers={"X-aws-ec2-metadata-token-ttl-seconds": "60"},
+    )
+    with urllib.request.urlopen(token_request, timeout=2) as response:
+        token = response.read().decode("utf-8")
+    ip_request = urllib.request.Request(
+        "http://169.254.169.254/latest/meta-data/public-ipv4",
+        headers={"X-aws-ec2-metadata-token": token},
+    )
+    with urllib.request.urlopen(ip_request, timeout=2) as response:
+        return response.read().decode("utf-8").strip()
+
+
+def ranges(permission: dict) -> list[dict]:
+    return list(permission.get("IpRanges") or [])
+
+
+def main() -> None:
+    region = os.environ["AWS_REGION"]
+    postgres_sg = os.environ["POSTGRES_SG_ID"]
+    instance_sg = os.environ["INSTANCE_SG_ID"]
+    alb_sg = os.environ["ALB_SG_ID"]
+    prefix = os.environ["CLOUDFRONT_PREFIX"]
+    description = "Postgres from kite-algo-setup public address"
+    ec2 = boto3.client("ec2", region_name=region)
+    address = public_ip()
+    cidr = f"{address}/32"
+
+    instance = ec2.describe_security_groups(GroupIds=[instance_sg])["SecurityGroups"][0]
+    postgres_open = False
+    for permission in instance.get("IpPermissionsEgress") or []:
+        if permission.get("IpProtocol") == "tcp" and permission.get("FromPort") == 5432 and permission.get("ToPort") == 5432:
+            postgres_open = any(item.get("CidrIp") == "0.0.0.0/0" for item in ranges(permission))
+    if not postgres_open:
+        allow(lambda: ec2.authorize_security_group_egress(
+            GroupId=instance_sg,
+            IpPermissions=[{
+                "IpProtocol": "tcp",
+                "FromPort": 5432,
+                "ToPort": 5432,
+                "IpRanges": [{"CidrIp": "0.0.0.0/0", "Description": "Postgres for development"}],
+            }],
+        ))
+
+    alb = ec2.describe_security_groups(GroupIds=[alb_sg])["SecurityGroups"][0]
+    cloudfront_open = False
+    for permission in alb.get("IpPermissions") or []:
+        if permission.get("IpProtocol") == "tcp" and permission.get("FromPort") == 80 and permission.get("ToPort") == 80:
+            cloudfront_open = any(item.get("PrefixListId") == prefix for item in permission.get("PrefixListIds") or [])
+    if not cloudfront_open:
+        allow(lambda: ec2.authorize_security_group_ingress(
+            GroupId=alb_sg,
+            IpPermissions=[{
+                "IpProtocol": "tcp",
+                "FromPort": 80,
+                "ToPort": 80,
+                "PrefixListIds": [{"PrefixListId": prefix, "Description": "HTTP from CloudFront"}],
+            }],
+        ))
+
+    database = ec2.describe_security_groups(GroupIds=[postgres_sg])["SecurityGroups"][0]
+    present = False
+    for permission in database.get("IpPermissions") or []:
+        if permission.get("IpProtocol") != "tcp" or permission.get("FromPort") != 5432 or permission.get("ToPort") != 5432:
+            continue
+        for item in ranges(permission):
+            if item.get("Description") == description and item.get("CidrIp") != cidr:
+                ec2.revoke_security_group_ingress(
+                    GroupId=postgres_sg,
+                    IpPermissions=[{
+                        "IpProtocol": "tcp",
+                        "FromPort": 5432,
+                        "ToPort": 5432,
+                        "IpRanges": [{"CidrIp": item["CidrIp"], "Description": description}],
+                    }],
+                )
+            elif item.get("CidrIp") == cidr:
+                present = True
+    if not present:
+        allow(lambda: ec2.authorize_security_group_ingress(
+            GroupId=postgres_sg,
+            IpPermissions=[{
+                "IpProtocol": "tcp",
+                "FromPort": 5432,
+                "ToPort": 5432,
+                "IpRanges": [{"CidrIp": cidr, "Description": description}],
+            }],
+        ))
+    print(json.dumps({"public_ip": address, "postgres_ingress": cidr}))
+
+
+if __name__ == "__main__":
+    main()
+PY
+chmod 755 /usr/local/bin/kite-postgres-ingress
+
+cat > /etc/systemd/system/kite-postgres-ingress.service <<UNIT
+[Unit]
+Description=Allow this instance public address to reach Postgres
+
+[Service]
+Type=oneshot
+Environment=AWS_REGION=${aws_region}
+Environment=POSTGRES_SG_ID=${postgres_sg_id}
+Environment=INSTANCE_SG_ID=${instance_sg_id}
+Environment=ALB_SG_ID=${alb_sg_id}
+Environment=CLOUDFRONT_PREFIX=${cloudfront_prefix}
+ExecStart=/usr/bin/python3 /usr/local/bin/kite-postgres-ingress
+UNIT
+
+cat > /etc/systemd/system/kite-postgres-ingress.timer <<'UNIT'
+[Unit]
+Description=Refresh the instance public address on the Postgres security group
+
+[Timer]
+OnBootSec=20s
+OnUnitActiveSec=60s
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target
+UNIT
+
 systemctl daemon-reload
-systemctl enable --now nginx kite-scan.service kite-desk.service kite-algo-setup-sync.timer
+systemctl enable --now nginx kite-scan.service kite-desk.service kite-algo-setup-sync.timer kite-postgres-ingress.timer
 /usr/local/bin/kite-algo-setup-sync || true
+/usr/local/bin/kite-postgres-ingress || true
