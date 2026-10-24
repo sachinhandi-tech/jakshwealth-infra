@@ -222,8 +222,63 @@ resource "aws_iam_role_policy" "parallel_api" {
         Action   = ["secretsmanager:GetSecretValue"]
         Resource = "arn:aws:secretsmanager:${var.aws_region}:*:secret:${var.db_secret_id}*"
       },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:SendMessageBatch",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:DeleteMessageBatch",
+          "sqs:ChangeMessageVisibility",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl",
+        ]
+        Resource = [
+          aws_sqs_queue.equity.arn,
+          aws_sqs_queue.equity_dlq.arn,
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt", "kms:GenerateDataKey"]
+        Resource = aws_kms_key.equity_queue.arn
+      },
     ]
   })
+}
+
+resource "aws_kms_key" "equity_queue" {
+  description             = "Encrypts the kite equity work queue"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  tags                    = local.tags
+}
+
+resource "aws_kms_alias" "equity_queue" {
+  name          = "alias/kite-algo-setup-equity"
+  target_key_id = aws_kms_key.equity_queue.key_id
+}
+
+resource "aws_sqs_queue" "equity_dlq" {
+  name                      = "kite-algo-setup-equity-dlq"
+  message_retention_seconds = 1209600
+  receive_wait_time_seconds = 20
+  kms_master_key_id         = aws_kms_key.equity_queue.arn
+  tags                      = local.tags
+}
+
+resource "aws_sqs_queue" "equity" {
+  name                       = "kite-algo-setup-equity"
+  receive_wait_time_seconds  = 20
+  visibility_timeout_seconds = 900
+  message_retention_seconds  = 345600
+  kms_master_key_id          = aws_kms_key.equity_queue.arn
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.equity_dlq.arn
+    maxReceiveCount     = 5
+  })
+  tags = local.tags
 }
 
 resource "aws_iam_instance_profile" "parallel" {
@@ -301,6 +356,7 @@ resource "aws_launch_template" "parallel" {
     instance_sg_id    = aws_security_group.parallel.id
     alb_sg_id         = aws_security_group.alb.id
     cloudfront_prefix = data.aws_ec2_managed_prefix_list.cloudfront.id
+    equity_queue_url  = aws_sqs_queue.equity.url
   }))
 
   metadata_options {
