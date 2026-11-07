@@ -11,9 +11,19 @@ data "terraform_remote_state" "postgres" {
   }
 }
 
+# After the Postgres stack is destroyed, its state file has no outputs.
+# Destroy still has to evaluate this config, so fall back to ids that pass
+# validation. The real ids remain in this stack's own state and are what gets deleted.
+locals {
+  postgres_vpc_id                 = try(data.terraform_remote_state.postgres.outputs.vpc_id, "vpc-00000000")
+  postgres_public_route_table_id  = try(data.terraform_remote_state.postgres.outputs.public_route_table_id, "rtb-00000000")
+  postgres_private_route_table_id = try(data.terraform_remote_state.postgres.outputs.kite_private_route_table_id, "rtb-00000001")
+  postgres_security_group_id      = try(data.terraform_remote_state.postgres.outputs.postgres_security_group_id, "sg-00000000")
+}
+
 resource "aws_vpc_peering_connection" "postgres" {
   vpc_id      = aws_vpc.parallel.id
-  peer_vpc_id = data.terraform_remote_state.postgres.outputs.vpc_id
+  peer_vpc_id = local.postgres_vpc_id
   auto_accept = true
   tags        = merge(local.tags, { Name = "${local.name}-postgres" })
 }
@@ -25,13 +35,13 @@ resource "aws_route" "parallel_to_postgres" {
 }
 
 resource "aws_route" "postgres_public_to_parallel" {
-  route_table_id            = data.terraform_remote_state.postgres.outputs.public_route_table_id
+  route_table_id            = local.postgres_public_route_table_id
   destination_cidr_block    = var.vpc_cidr
   vpc_peering_connection_id = aws_vpc_peering_connection.postgres.id
 }
 
 resource "aws_route" "postgres_private_to_parallel" {
-  route_table_id            = data.terraform_remote_state.postgres.outputs.kite_private_route_table_id
+  route_table_id            = local.postgres_private_route_table_id
   destination_cidr_block    = var.vpc_cidr
   vpc_peering_connection_id = aws_vpc_peering_connection.postgres.id
 }
@@ -40,7 +50,7 @@ resource "aws_security_group_rule" "instances_to_postgres" {
   type                     = "egress"
   description              = "Postgres in the subscriber VPC"
   security_group_id        = aws_security_group.parallel.id
-  source_security_group_id = data.terraform_remote_state.postgres.outputs.postgres_security_group_id
+  source_security_group_id = local.postgres_security_group_id
   from_port                = 5432
   to_port                  = 5432
   protocol                 = "tcp"
@@ -50,7 +60,7 @@ resource "aws_security_group_rule" "instances_to_postgres" {
 resource "aws_security_group_rule" "postgres_from_instances" {
   type                     = "ingress"
   description              = "Postgres from kite-algo-setup"
-  security_group_id        = data.terraform_remote_state.postgres.outputs.postgres_security_group_id
+  security_group_id        = local.postgres_security_group_id
   source_security_group_id = aws_security_group.parallel.id
   from_port                = 5432
   to_port                  = 5432

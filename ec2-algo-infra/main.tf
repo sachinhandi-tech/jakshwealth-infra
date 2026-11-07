@@ -352,7 +352,7 @@ resource "aws_launch_template" "parallel" {
     artifact_bucket   = var.artifact_bucket
     db_secret_id      = var.db_secret_id
     aws_region        = var.aws_region
-    postgres_sg_id    = data.terraform_remote_state.postgres.outputs.postgres_security_group_id
+    postgres_sg_id    = local.postgres_security_group_id
     instance_sg_id    = aws_security_group.parallel.id
     alb_sg_id         = aws_security_group.alb.id
     cloudfront_prefix = data.aws_ec2_managed_prefix_list.cloudfront.id
