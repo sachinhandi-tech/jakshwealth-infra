@@ -43,7 +43,7 @@ pipeline {
         choice(
             name: 'TERRAFORM_ACTION',
             choices: ['plan', 'apply', 'destroy'],
-            description: 'Terraform action for JakshWealth platform infra (UI hosting + EC2).'
+            description: 'plan or apply builds the UI, the database, then the API. destroy removes the API, the database, the UI, then the foundation buckets.'
         )
     }
     environment {
@@ -118,6 +118,7 @@ pipeline {
         }
         
         stage('UI hosting (S3 + CloudFront)') {
+            when { expression { params.TERRAFORM_ACTION != 'destroy' } }
             steps {
                 catchError(buildResult: null, stageResult: 'FAILURE') {
                     script {
@@ -144,6 +145,7 @@ pipeline {
         }
         
         stage('Subscriber Postgres') {
+            when { expression { params.TERRAFORM_ACTION != 'destroy' } }
             steps {
                 script {
                     jakshAws {
@@ -168,6 +170,7 @@ pipeline {
         }
         
         stage('EC2 algo infra') {
+            when { expression { params.TERRAFORM_ACTION != 'destroy' } }
             steps {
                 script {
                     jakshAws {
@@ -201,11 +204,139 @@ pipeline {
                                     echo "No CloudFront distribution ID found, skipping invalidation"
                                 fi
                                 
-                            elif [ "${TERRAFORM_ACTION}" = "destroy" ]; then
-                                terraform destroy -auto-approve -lock-timeout=10m
                             else
                                 terraform plan -lock-timeout=10m
                             fi
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Destroy API (EC2)') {
+            when { expression { params.TERRAFORM_ACTION == 'destroy' } }
+            steps {
+                script {
+                    jakshAws {
+                        sh '''
+                            chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
+                            REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
+
+                            cd ec2-algo-infra
+                            terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
+
+                            ok=0
+                            for attempt in 1 2 3 4 5 6 7 8; do
+                                if terraform destroy -auto-approve -lock-timeout=10m; then
+                                    ok=1
+                                    break
+                                fi
+                                echo "API destroy attempt ${attempt} failed. Waiting for network interfaces to release."
+                                sleep 90
+                            done
+                            if [ "${ok}" != "1" ]; then
+                                exit 1
+                            fi
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Destroy Postgres') {
+            when { expression { params.TERRAFORM_ACTION == 'destroy' } }
+            steps {
+                script {
+                    jakshAws {
+                        sh '''
+                            chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
+                            REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
+
+                            cd postgres
+                            terraform init -input=false -reconfigure -backend-config="backend.dev.tfvars"
+
+                            if terraform state list | grep -q .; then
+                                terraform apply -auto-approve -lock-timeout=15m -var-file="vars.dev.tfvars" \
+                                    -var="deletion_protection=false" \
+                                    -var="skip_final_snapshot=true" \
+                                    -var="secret_recovery_window_in_days=0"
+                            fi
+                            terraform destroy -auto-approve -lock-timeout=15m -var-file="vars.dev.tfvars" \
+                                -var="deletion_protection=false" \
+                                -var="skip_final_snapshot=true" \
+                                -var="secret_recovery_window_in_days=0"
+
+                            aws secretsmanager delete-secret \
+                                --secret-id "jakshwealth/${DEPLOY_ENV}/jakshwealth" \
+                                --force-delete-without-recovery \
+                                --region "${AWS_REGION}" || true
+                            aws rds delete-db-snapshot \
+                                --db-snapshot-identifier "jakshwealth-${DEPLOY_ENV}-postgres-final" \
+                                --region "${AWS_REGION}" || true
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Destroy UI') {
+            when { expression { params.TERRAFORM_ACTION == 'destroy' } }
+            steps {
+                script {
+                    jakshAws {
+                        sh '''
+                            chmod +x "${WORKSPACE}/scripts/terraform-unlock-stale.sh"
+                            REMOVE_NON_JENKINS=1 "${WORKSPACE}/scripts/terraform-unlock-stale.sh" 5
+
+                            cd s3-cloudfront-ui/module
+                            terraform init -input=false -reconfigure -backend-config="config/dev-backend.tfvars"
+                            terraform destroy -auto-approve -lock-timeout=10m -var "deploy_env=${DEPLOY_ENV}" -var-file="s3_config_vars/s3.dev.tfvars"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Destroy foundation buckets') {
+            when { expression { params.TERRAFORM_ACTION == 'destroy' } }
+            steps {
+                script {
+                    jakshAws {
+                        sh '''
+                            case "${AWS_REGION}" in
+                                ap-south-2) suffix=aps2 ;;
+                                us-east-1) suffix=use1 ;;
+                                *) suffix=$(printf '%s' "${AWS_REGION}" | tr -d '-') ;;
+                            esac
+
+                            purge_bucket() {
+                                bucket="$1"
+                                if ! aws s3api head-bucket --bucket "${bucket}" >/dev/null 2>&1; then
+                                    echo "Already gone: ${bucket}"
+                                    return 0
+                                fi
+                                echo "Emptying ${bucket}"
+                                while true; do
+                                    payload=$(aws s3api list-object-versions --bucket "${bucket}" --max-keys 1000 --output json | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+items = (data.get("Versions") or []) + (data.get("DeleteMarkers") or [])
+objects = [{"Key": item["Key"], "VersionId": item["VersionId"]} for item in items]
+print(json.dumps({"Objects": objects, "Quiet": True}) if objects else "")
+')
+                                    if [ -z "${payload}" ]; then
+                                        break
+                                    fi
+                                    aws s3api delete-objects --bucket "${bucket}" --delete "${payload}" >/dev/null
+                                done
+                                aws s3api delete-bucket --bucket "${bucket}"
+                                echo "Deleted ${bucket}"
+                            }
+
+                            purge_bucket "jakshwealth-infra-${DEPLOY_ENV}-${suffix}"
+                            purge_bucket "jakshwealth-artifacts-${DEPLOY_ENV}-${suffix}"
+                            purge_bucket "jakshwealth-logs-${DEPLOY_ENV}-${suffix}"
+                            aws dynamodb delete-table --table-name terraform-state-lock --region "${AWS_REGION}" || true
                         '''
                     }
                 }
